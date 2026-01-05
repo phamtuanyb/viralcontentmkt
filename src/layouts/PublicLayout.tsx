@@ -3,12 +3,9 @@ import { Button } from "@/components/ui/button";
 import { ROUTES, APP_NAME } from "@/constants";
 import { Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
 export const PublicLayout = () => {
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -17,16 +14,13 @@ export const PublicLayout = () => {
               <Zap className="h-6 w-6 text-primary" />
             </div>
             <span className="text-xl font-bold tracking-tight">
-              <span className="gradient-text">MKT</span> Viral
+              <span className="gradient-text">MKT</span> Viral Content 
             </span>
           </Link>
           
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button 
-              onClick={() => navigate(ROUTES.AUTH)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg hover:shadow-xl transition-all"
-            >
+            <Button onClick={() => navigate(ROUTES.AUTH)} className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg hover:shadow-xl transition-all">
               Đăng nhập
             </Button>
           </div>
@@ -44,6 +38,5 @@ export const PublicLayout = () => {
           <p>© 2026 {APP_NAME}. All rights reserved.</p>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 };
