@@ -53,8 +53,12 @@ const ContentLibraryPage = () => {
 
   // State for random daily content
   const [dailyContent, setDailyContent] = useState<ContentWithTopic | null>(null);
+  
+  // Generate unique session seed on component mount (different for each page load)
+  const [sessionSeed] = useState(() => Math.random());
 
   // Select random content each time page loads (excluding promotional content)
+  // Each user and each session gets different random content
   useEffect(() => {
     const nonPromoContents = contents.filter(c => {
       const topicName = c.topics?.name?.toLowerCase() || "";
@@ -66,10 +70,13 @@ const ContentLibraryPage = () => {
       return;
     }
     
-    // Random selection each time
-    const randomIndex = Math.floor(Math.random() * nonPromoContents.length);
+    // Combine session seed with user ID for unique randomization per user per session
+    const userSeed = profile?.id ? profile.id.charCodeAt(0) / 100 : 0;
+    const combinedSeed = (sessionSeed + userSeed) % 1;
+    const randomIndex = Math.floor(combinedSeed * nonPromoContents.length);
+    
     setDailyContent(nonPromoContents[randomIndex]);
-  }, [contents]);
+  }, [contents, sessionSeed, profile?.id]);
 
   // Fetch images for daily content
   useEffect(() => {
