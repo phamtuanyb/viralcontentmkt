@@ -14,6 +14,7 @@ import { SuggestedArticles } from "@/components/SuggestedArticles";
 import { ContentComments } from "@/components/content/ContentComments";
 import { StarRating } from "@/components/content/StarRating";
 import { ImageGallery } from "@/components/content/ImageGallery";
+import { AdBannerDisplay } from "@/components/AdBannerDisplay";
 import { 
   ArrowLeft, 
   Copy, 
@@ -268,6 +269,9 @@ const ContentDetailPage = () => {
               </div>
             </div>
           </header>
+
+          {/* Ad Banner */}
+          <AdBannerDisplay placement="content_detail" className="mb-8" />
 
           <Separator className="my-8" />
 

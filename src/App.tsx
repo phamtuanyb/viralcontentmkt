@@ -23,6 +23,7 @@ import AdminContentsPage from "@/pages/admin/AdminContentsPage";
 import AdminContentEditorPage from "@/pages/admin/AdminContentEditorPage";
 import AdminBannersPage from "@/pages/admin/AdminBannersPage";
 import AdminProgramBannersPage from "@/pages/admin/AdminProgramBannersPage";
+import AdminAdBannersPage from "@/pages/admin/AdminAdBannersPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -93,6 +94,7 @@ const App = () => (
                 <Route path="/admin/contents/:id/edit" element={<AdminContentEditorPage />} />
                 <Route path={ROUTES.ADMIN_BANNERS} element={<AdminBannersPage />} />
                 <Route path={ROUTES.ADMIN_PROGRAM_BANNERS} element={<AdminProgramBannersPage />} />
+                <Route path={ROUTES.ADMIN_AD_BANNERS} element={<AdminAdBannersPage />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

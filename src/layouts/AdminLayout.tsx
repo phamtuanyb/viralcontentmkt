@@ -25,6 +25,7 @@ const adminMenuItems = [
   { path: ROUTES.ADMIN_CONTENTS, label: "Nội dung", icon: FileText },
   { path: ROUTES.ADMIN_BANNERS, label: "Banner trang chủ", icon: Image },
   { path: ROUTES.ADMIN_PROGRAM_BANNERS, label: "Banner chương trình", icon: Megaphone },
+  { path: ROUTES.ADMIN_AD_BANNERS, label: "Banner quảng cáo", icon: Megaphone },
 ];
 
 export const AdminLayout = () => {
