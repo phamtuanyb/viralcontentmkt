@@ -11,6 +11,8 @@ import { toast } from "@/hooks/use-toast";
 import { ROUTES } from "@/constants";
 import { extractIdFromSlug } from "@/lib/slug";
 import { SuggestedArticles } from "@/components/SuggestedArticles";
+import { ContentComments } from "@/components/content/ContentComments";
+import { StarRating } from "@/components/content/StarRating";
 import { 
   ArrowLeft, 
   Copy, 
@@ -421,11 +423,32 @@ const ContentDetailPage = () => {
             </motion.section>
           )}
 
-          {/* Related Content Placeholder */}
+          {/* Star Rating Section */}
           <motion.section
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
+            className="glass rounded-2xl p-6 mb-8"
+          >
+            <h3 className="text-lg font-semibold mb-4">Đánh giá bài viết</h3>
+            <StarRating contentId={content.id} />
+          </motion.section>
+
+          {/* Comments Section */}
+          <motion.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="glass rounded-2xl p-6 mb-8"
+          >
+            <ContentComments contentId={content.id} />
+          </motion.section>
+
+          {/* Related Content Placeholder */}
+          <motion.section
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
             className="glass rounded-2xl p-6 text-center"
           >
             <p className="text-muted-foreground mb-4">
