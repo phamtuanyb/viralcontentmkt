@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { authApi } from "@/api/auth.api";
 import { ROUTES } from "@/constants";
 import { toast } from "@/hooks/use-toast";
@@ -17,6 +18,7 @@ const AuthPage = () => {
   const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -58,7 +60,7 @@ const AuthPage = () => {
       if (isLogin) {
         const {
           error
-        } = await authApi.signIn(formData.email, formData.password);
+        } = await authApi.signIn(formData.email, formData.password, rememberMe);
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
             toast({
@@ -188,6 +190,22 @@ const AuthPage = () => {
             })} className="bg-background/50" />
               {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
             </div>
+
+            {isLogin && (
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="rememberMe" 
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <label 
+                  htmlFor="rememberMe" 
+                  className="text-sm text-muted-foreground cursor-pointer select-none"
+                >
+                  Ghi nhớ tài khoản (không tự đăng xuất)
+                </label>
+              </div>
+            )}
 
             <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-5">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : isLogin ? "Đăng nhập" : "Đăng ký"}
