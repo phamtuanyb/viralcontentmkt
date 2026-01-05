@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import DOMPurify from "dompurify";
 import { contentApi, type ContentWithTopic } from "@/api/content.api";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
@@ -144,7 +145,7 @@ const ContentDetailPage = () => {
   };
 
   const renderFormattedContent = (text: string) => {
-    return text
+    const html = text
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.*?)\*/g, "<em>$1</em>")
       .replace(/^# (.*$)/gm, "<h2 class='text-2xl font-bold mt-6 mb-3'>$1</h2>")
@@ -152,6 +153,12 @@ const ContentDetailPage = () => {
       .replace(/^> (.*$)/gm, "<blockquote class='border-l-4 border-primary/50 pl-4 my-4 italic text-muted-foreground'>$1</blockquote>")
       .replace(/`(.*?)`/g, "<code class='bg-muted px-1.5 py-0.5 rounded text-sm font-mono'>$1</code>")
       .replace(/\n/g, "<br />");
+    
+    return DOMPurify.sanitize(html, {
+      USE_PROFILES: { html: true },
+      ALLOWED_TAGS: ['strong', 'em', 'h2', 'h3', 'blockquote', 'code', 'br', 'p', 'span'],
+      ALLOWED_ATTR: ['class']
+    });
   };
 
   if (isLoading) {
