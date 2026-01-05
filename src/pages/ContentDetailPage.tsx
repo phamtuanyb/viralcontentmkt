@@ -15,6 +15,7 @@ import { ContentComments } from "@/components/content/ContentComments";
 import { StarRating } from "@/components/content/StarRating";
 import { ImageGallery } from "@/components/content/ImageGallery";
 import { AdBannerDisplay } from "@/components/AdBannerDisplay";
+import { AIContentRewrite } from "@/components/content/AIContentRewrite";
 import { 
   ArrowLeft, 
   Copy, 
@@ -287,7 +288,7 @@ const ContentDetailPage = () => {
               dangerouslySetInnerHTML={{ __html: renderFormattedContent(content.body) }}
             />
 
-            {/* Copy Button */}
+            {/* Copy & AI Content Buttons */}
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
@@ -313,6 +314,8 @@ const ContentDetailPage = () => {
                     </>
                   )}
                 </Button>
+                
+                <AIContentRewrite originalContent={content.body} />
               </div>
               
               {user && profile?.phone_number && (
