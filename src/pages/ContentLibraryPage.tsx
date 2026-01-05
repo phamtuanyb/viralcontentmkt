@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { contentApi, type ContentWithTopic, type SortOption } from "@/api/content.api";
 import { topicsApi, type Topic } from "@/api/topics.api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants";
 import { createContentUrl } from "@/lib/slug";
-import { Search, FileText, Calendar, Tag, Folder, FolderOpen, ChevronRight, Sparkles, ArrowUpDown, Clock, Eye, TrendingUp } from "lucide-react";
+import { Search, FileText, Calendar, Tag, Folder, FolderOpen, ChevronRight, Sparkles, ArrowUpDown, Clock, Eye, TrendingUp, Gift, Copy, Check } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -16,7 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 
 const sortOptions = [
   { value: "newest" as SortOption, label: "Mới nhất", icon: Clock },
@@ -32,6 +34,41 @@ const ContentLibraryPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [isLoading, setIsLoading] = useState(true);
+  const [copiedDaily, setCopiedDaily] = useState(false);
+  const { profile } = useAuthStore();
+
+  // Get today's date for seeding the random selection
+  const today = new Date();
+  const todayString = format(today, "dd/MM/yyyy");
+  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+
+  // Get random content of the day (excluding promotional content)
+  const dailyContent = useMemo(() => {
+    // Filter out promotional content (assuming topic name contains "khuyến mãi" or similar)
+    const nonPromoContents = contents.filter(c => {
+      const topicName = c.topics?.name?.toLowerCase() || "";
+      return !topicName.includes("khuyến mãi") && !topicName.includes("khuyen mai") && !topicName.includes("promotion");
+    });
+    
+    if (nonPromoContents.length === 0) return null;
+    
+    // Use day of year as seed for consistent daily random
+    const randomIndex = dayOfYear % nonPromoContents.length;
+    return nonPromoContents[randomIndex];
+  }, [contents, dayOfYear]);
+
+  const handleCopyDailyContent = async () => {
+    if (!dailyContent) return;
+    
+    try {
+      await navigator.clipboard.writeText(dailyContent.body);
+      setCopiedDaily(true);
+      toast.success("Đã sao chép nội dung!");
+      setTimeout(() => setCopiedDaily(false), 2000);
+    } catch {
+      toast.error("Không thể sao chép nội dung");
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -261,6 +298,104 @@ const ContentLibraryPage = () => {
               ))}
             </div>
           </div>
+
+          {/* Content Theo Ngày - Daily Random Content */}
+          {dailyContent && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
+            >
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 border border-primary/20 p-6">
+                {/* Decorative elements */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-secondary/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+                
+                <div className="relative z-10">
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2.5 rounded-xl bg-primary/20 text-primary">
+                      <Gift className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Content Theo Ngày</h3>
+                      <p className="text-xs text-muted-foreground">Nội dung được chọn ngẫu nhiên mỗi ngày</p>
+                    </div>
+                  </div>
+
+                  {/* Greeting */}
+                  <div className="mb-4 p-4 rounded-xl bg-background/50 backdrop-blur-sm border border-border/30">
+                    <p className="text-foreground">
+                      Xin Chào, <span className="font-semibold text-primary">{profile?.full_name || profile?.email?.split("@")[0] || "Bạn"}</span>! 👋
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Hôm nay là ngày <span className="font-medium text-foreground">{todayString}</span>
+                    </p>
+                    <p className="text-sm mt-2">
+                      Hãy dùng content này để đăng bài bán hàng nha! Chúc bạn thành công và sớm về bờ. 🚀
+                    </p>
+                  </div>
+
+                  {/* Daily Content Card */}
+                  <div className="bg-card/80 backdrop-blur-sm rounded-xl border border-border/50 overflow-hidden">
+                    <div className="flex flex-col md:flex-row">
+                      {dailyContent.thumbnail_url && (
+                        <div className="md:w-48 shrink-0">
+                          <img
+                            src={dailyContent.thumbnail_url}
+                            alt={dailyContent.title}
+                            className="w-full h-32 md:h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            {dailyContent.topics && (
+                              <Badge variant="secondary" className="mb-2 bg-primary/10 text-primary border-0 text-xs">
+                                <Tag className="h-3 w-3 mr-1" />
+                                {dailyContent.topics.name}
+                              </Badge>
+                            )}
+                            <h4 className="font-semibold text-base mb-2 line-clamp-1">
+                              {dailyContent.title}
+                            </h4>
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {dailyContent.body}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            onClick={handleCopyDailyContent}
+                            className="gap-2"
+                          >
+                            {copiedDaily ? (
+                              <>
+                                <Check className="h-4 w-4" />
+                                Đã sao chép
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-4 w-4" />
+                                Sao chép nội dung
+                              </>
+                            )}
+                          </Button>
+                          <Link to={createContentUrl(dailyContent.id, dailyContent.title)}>
+                            <Button variant="outline" size="sm">
+                              Xem chi tiết
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Content Grid */}
           {isLoading ? (
