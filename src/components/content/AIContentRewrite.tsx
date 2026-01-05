@@ -1,64 +1,34 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { ROUTES } from "@/constants";
-import { Sparkles, Copy, X, Loader2, AlertCircle, Settings } from "lucide-react";
+import { Sparkles, Copy, X, Loader2 } from "lucide-react";
 
 interface AIContentRewriteProps {
   originalContent: string;
 }
 
 export const AIContentRewrite = ({ originalContent }: AIContentRewriteProps) => {
-  const navigate = useNavigate();
   const { user, profile } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
-  const [showNoKeyDialog, setShowNoKeyDialog] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [rewrittenContent, setRewrittenContent] = useState("");
 
   const handleAIContent = async () => {
-    if (!user) {
-      toast({
-        title: "Yêu cầu đăng nhập",
-        description: "Vui lòng đăng nhập để sử dụng tính năng AI Content",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!user) return;
 
-    // Check if user has Gemini API key
-    const { data: userProfile } = await supabase
-      .from("user_profiles")
-      .select("gemini_api_key")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!userProfile?.gemini_api_key) {
-      setShowNoKeyDialog(true);
-      return;
-    }
-
-    // Call AI rewrite
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-rewrite", {
         body: {
           content: originalContent,
-          geminiApiKey: userProfile.gemini_api_key,
         },
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
 
       setRewrittenContent(data.rewrittenContent);
       setShowResultDialog(true);
@@ -102,11 +72,6 @@ export const AIContentRewrite = ({ originalContent }: AIContentRewriteProps) => 
     }
   };
 
-  const handleGoToSettings = () => {
-    setShowNoKeyDialog(false);
-    navigate(ROUTES.PROFILE);
-  };
-
   if (!user) return null;
 
   return (
@@ -130,30 +95,6 @@ export const AIContentRewrite = ({ originalContent }: AIContentRewriteProps) => 
           </>
         )}
       </Button>
-
-      {/* No API Key Dialog */}
-      <Dialog open={showNoKeyDialog} onOpenChange={setShowNoKeyDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-warning" />
-              Chưa có Gemini API Key
-            </DialogTitle>
-            <DialogDescription>
-              Bạn chưa cấu hình Gemini API Key. Vui lòng thêm API Key để sử dụng tính năng AI Content.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowNoKeyDialog(false)}>
-              Đóng
-            </Button>
-            <Button onClick={handleGoToSettings} className="gap-2">
-              <Settings className="h-4 w-4" />
-              Cài đặt Gemini API Key
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Result Dialog */}
       <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
@@ -184,3 +125,4 @@ export const AIContentRewrite = ({ originalContent }: AIContentRewriteProps) => 
     </>
   );
 };
+

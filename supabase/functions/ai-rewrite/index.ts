@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.89.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,109 +64,131 @@ Hãy trả về duy nhất:
 )`;
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { content, geminiApiKey } = await req.json();
+    const { content } = await req.json();
 
-    if (!content || !geminiApiKey) {
-      return new Response(
-        JSON.stringify({ error: "Missing content or API key" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!content) {
+      return new Response(JSON.stringify({ error: "Missing content" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Build the prompt with the content
+    // Require logged-in user (even though function is public)
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY env");
+      return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+      auth: {
+        persistSession: false,
+      },
+    });
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user) {
+      console.error("Unauthorized request - auth.getUser failed", userError?.message);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const finalPrompt = REWRITE_PROMPT.replace("{original_content}", content);
 
-    // Call Gemini API
-    const model = "gemini-1.5-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(JSON.stringify({ error: "Server AI key missing" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const response = await fetch(url, {
+    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: finalPrompt }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 8192,
-        },
+        model: "google/gemini-2.5-flash",
+        messages: [{ role: "user", content: finalPrompt }],
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Gemini API error:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
+    if (!aiResp.ok) {
+      const t = await aiResp.text();
+      console.error("AI gateway error:", { status: aiResp.status, body: t });
+
+      if (aiResp.status === 429) {
+        return new Response(JSON.stringify({ error: "Bạn đang gửi quá nhanh. Vui lòng thử lại sau." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (aiResp.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Hệ thống AI đang hết quota/credits. Vui lòng thử lại sau hoặc nạp thêm credits." }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "Lỗi khi gọi AI. Vui lòng thử lại sau." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-
-      // Invalid/unauthorized API key
-      if (response.status === 401 || response.status === 403) {
-        return new Response(
-          JSON.stringify({
-            error: "API Key không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại API Key của bạn.",
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      // Client errors (request too large, malformed, etc.)
-      if (response.status === 400) {
-        return new Response(
-          JSON.stringify({
-            error:
-              "Yêu cầu không hợp lệ hoặc nội dung quá dài. Vui lòng rút gọn nội dung và thử lại.",
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      // Rate limit
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Bạn đang gửi quá nhanh. Vui lòng chờ 1 lát rồi thử lại." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      // Other errors
-      return new Response(
-        JSON.stringify({ error: "Lỗi khi gọi Gemini API. Vui lòng thử lại sau." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
     }
 
-    const data = await response.json();
-    const rewrittenContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const aiData = await aiResp.json();
+    const rewrittenContent = aiData?.choices?.[0]?.message?.content;
 
     if (!rewrittenContent) {
-      return new Response(
-        JSON.stringify({ error: "Không nhận được kết quả từ AI. Vui lòng thử lại." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.error("AI gateway returned empty content", aiData);
+      return new Response(JSON.stringify({ error: "Không nhận được kết quả từ AI. Vui lòng thử lại." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(
-      JSON.stringify({ rewrittenContent }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ rewrittenContent }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error in ai-rewrite function:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
+
