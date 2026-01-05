@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const adminMenuItems = [
   { path: ROUTES.ADMIN, label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -52,7 +53,7 @@ export const AdminLayout = () => {
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border z-40 flex flex-col">
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
           <Link to={ROUTES.CONTENT_LIBRARY} className="flex items-center gap-2 group">
             <div className="p-2 rounded-lg bg-sidebar-primary/10 group-hover:bg-sidebar-primary/20 transition-colors">
               <Zap className="h-5 w-5 text-sidebar-primary" />
@@ -61,6 +62,7 @@ export const AdminLayout = () => {
               Admin
             </span>
           </Link>
+          <ThemeToggle />
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">

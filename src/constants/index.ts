@@ -11,6 +11,8 @@ export const ROUTES = {
   ADMIN_USERS: "/admin/users",
   ADMIN_TOPICS: "/admin/topics",
   ADMIN_CONTENTS: "/admin/contents",
+  ADMIN_CONTENT_NEW: "/admin/contents/new",
+  ADMIN_CONTENT_EDIT: "/admin/contents/:id/edit",
   ADMIN_BANNERS: "/admin/banners",
   ADMIN_PROGRAM_BANNERS: "/admin/program-banners",
 } as const;

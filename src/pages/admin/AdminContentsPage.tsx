@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { contentApi, type ContentWithTopic } from "@/api/content.api";
-import { topicsApi, type Topic } from "@/api/topics.api";
-import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -16,39 +14,48 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { FileText, Plus, Edit, Trash2, Loader2, CheckCircle, Clock } from "lucide-react";
+import { ROUTES } from "@/constants";
+import { topicsApi, type Topic } from "@/api/topics.api";
+import { 
+  FileText, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Loader2, 
+  CheckCircle, 
+  Clock,
+  Search,
+  Eye,
+  Filter,
+} from "lucide-react";
 import { format } from "date-fns";
 
 const AdminContentsPage = () => {
-  const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [contents, setContents] = useState<ContentWithTopic[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingContent, setEditingContent] = useState<ContentWithTopic | null>(null);
-  const [formData, setFormData] = useState({
-    title: "",
-    body: "",
-    topic_id: "",
-    thumbnail_url: "",
-    is_published: false,
-  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterTopic, setFilterTopic] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -65,73 +72,41 @@ const AdminContentsPage = () => {
     fetchData();
   }, []);
 
-  const handleOpenDialog = (content?: ContentWithTopic) => {
-    if (content) {
-      setEditingContent(content);
-      setFormData({
-        title: content.title,
-        body: content.body,
-        topic_id: content.topic_id || "",
-        thumbnail_url: content.thumbnail_url || "",
-        is_published: content.is_published,
-      });
-    } else {
-      setEditingContent(null);
-      setFormData({ title: "", body: "", topic_id: "", thumbnail_url: "", is_published: false });
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.title || !formData.body) {
-      toast({ title: "Lỗi", description: "Vui lòng điền đầy đủ thông tin", variant: "destructive" });
-      return;
-    }
-
-    const contentData = {
-      ...formData,
-      topic_id: formData.topic_id || undefined,
-      created_by: user?.id,
-    };
-
-    if (editingContent) {
-      const { error } = await contentApi.update(editingContent.id, contentData);
-      if (error) {
-        toast({ title: "Lỗi", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Thành công", description: "Đã cập nhật nội dung" });
-        fetchData();
-      }
-    } else {
-      const { error } = await contentApi.create(contentData);
-      if (error) {
-        toast({ title: "Lỗi", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Thành công", description: "Đã tạo nội dung mới" });
-        fetchData();
-      }
-    }
-    setIsDialogOpen(false);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Bạn có chắc muốn xóa nội dung này?")) return;
+  const handleDelete = async () => {
+    if (!deleteId) return;
     
-    const { error } = await contentApi.delete(id);
+    const { error } = await contentApi.delete(deleteId);
     if (error) {
       toast({ title: "Lỗi", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Thành công", description: "Đã xóa nội dung" });
-      setContents(contents.filter((c) => c.id !== id));
+      setContents(contents.filter((c) => c.id !== deleteId));
     }
+    setDeleteId(null);
+  };
+
+  const filteredContents = contents.filter((content) => {
+    const matchesSearch = content.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTopic = filterTopic === "all" || content.topic_id === filterTopic;
+    const matchesStatus = filterStatus === "all" || 
+      (filterStatus === "published" && content.is_published) ||
+      (filterStatus === "draft" && !content.is_published);
+    
+    return matchesSearch && matchesTopic && matchesStatus;
+  });
+
+  const stats = {
+    total: contents.length,
+    published: contents.filter(c => c.is_published).length,
+    draft: contents.filter(c => !c.is_published).length,
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8 flex items-center justify-between"
+        className="flex items-center justify-between"
       >
         <div>
           <div className="flex items-center gap-3 mb-2">
@@ -142,31 +117,115 @@ const AdminContentsPage = () => {
             Tạo và quản lý các nội dung viral
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()} className="gap-2">
+        <Button 
+          onClick={() => navigate(ROUTES.ADMIN_CONTENT_NEW)} 
+          className="gap-2"
+        >
           <Plus className="h-4 w-4" />
-          Thêm nội dung
+          Tạo nội dung mới
         </Button>
       </motion.div>
 
+      {/* Stats Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        <div className="glass rounded-xl p-4 flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-primary/10">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{stats.total}</p>
+            <p className="text-sm text-muted-foreground">Tổng nội dung</p>
+          </div>
+        </div>
+        <div className="glass rounded-xl p-4 flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-success/10">
+            <CheckCircle className="h-5 w-5 text-success" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{stats.published}</p>
+            <p className="text-sm text-muted-foreground">Đã xuất bản</p>
+          </div>
+        </div>
+        <div className="glass rounded-xl p-4 flex items-center gap-4">
+          <div className="p-3 rounded-lg bg-muted">
+            <Clock className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{stats.draft}</p>
+            <p className="text-sm text-muted-foreground">Bản nháp</p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Filters */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
+        className="flex flex-col sm:flex-row gap-4"
+      >
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm kiếm theo tiêu đề..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={filterTopic} onValueChange={setFilterTopic}>
+          <SelectTrigger className="w-[180px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Chủ đề" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả chủ đề</SelectItem>
+            {topics.map((topic) => (
+              <SelectItem key={topic.id} value={topic.id}>
+                {topic.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="published">Đã xuất bản</SelectItem>
+            <SelectItem value="draft">Bản nháp</SelectItem>
+          </SelectContent>
+        </Select>
+      </motion.div>
+
+      {/* Content Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
         className="glass rounded-xl overflow-hidden"
       >
         {isLoading ? (
           <div className="p-8 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           </div>
-        ) : contents.length === 0 ? (
+        ) : filteredContents.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
-            Chưa có nội dung nào
+            {searchQuery || filterTopic !== "all" || filterStatus !== "all" 
+              ? "Không tìm thấy nội dung phù hợp" 
+              : "Chưa có nội dung nào"}
           </div>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="border-border">
-                <TableHead>Tiêu đề</TableHead>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="w-[40%]">Tiêu đề</TableHead>
                 <TableHead>Chủ đề</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Ngày tạo</TableHead>
@@ -174,10 +233,34 @@ const AdminContentsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contents.map((content) => (
-                <TableRow key={content.id} className="border-border">
+              {filteredContents.map((content, index) => (
+                <motion.tr
+                  key={content.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="border-border hover:bg-muted/50 group"
+                >
                   <TableCell>
-                    <div className="max-w-xs truncate font-medium">{content.title}</div>
+                    <div className="flex items-center gap-3">
+                      {content.thumbnail_url ? (
+                        <img
+                          src={content.thumbnail_url}
+                          alt={content.title}
+                          className="h-12 w-16 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-12 w-16 rounded bg-muted flex items-center justify-center">
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="max-w-xs">
+                        <p className="font-medium truncate">{content.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {content.body.substring(0, 60)}...
+                        </p>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {content.topics ? (
@@ -188,13 +271,13 @@ const AdminContentsPage = () => {
                   </TableCell>
                   <TableCell>
                     {content.is_published ? (
-                      <Badge className="bg-success/20 text-success border-0">
-                        <CheckCircle className="h-3 w-3 mr-1" />
+                      <Badge className="bg-success/20 text-success border-0 gap-1">
+                        <CheckCircle className="h-3 w-3" />
                         Đã xuất bản
                       </Badge>
                     ) : (
-                      <Badge className="bg-muted text-muted-foreground border-0">
-                        <Clock className="h-3 w-3 mr-1" />
+                      <Badge className="bg-muted text-muted-foreground border-0 gap-1">
+                        <Clock className="h-3 w-3" />
                         Nháp
                       </Badge>
                     )}
@@ -202,85 +285,58 @@ const AdminContentsPage = () => {
                   <TableCell className="text-muted-foreground">
                     {format(new Date(content.created_at), "dd/MM/yyyy")}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(content)}>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => window.open(`/library/${content.id}`, "_blank")}
+                        title="Xem"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/admin/contents/${content.id}/edit`)}
+                        title="Chỉnh sửa"
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(content.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(content.id)}
+                        title="Xóa"
+                      >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))}
             </TableBody>
           </Table>
         )}
       </motion.div>
 
-      {/* Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="glass-strong max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingContent ? "Chỉnh sửa nội dung" : "Thêm nội dung mới"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-2">
-              <Label>Tiêu đề</Label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Nhập tiêu đề nội dung"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Chủ đề</Label>
-              <Select
-                value={formData.topic_id}
-                onValueChange={(value) => setFormData({ ...formData, topic_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn chủ đề" />
-                </SelectTrigger>
-                <SelectContent>
-                  {topics.map((topic) => (
-                    <SelectItem key={topic.id} value={topic.id}>{topic.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Nội dung</Label>
-              <Textarea
-                value={formData.body}
-                onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                placeholder="Nhập nội dung..."
-                rows={8}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>URL Thumbnail</Label>
-              <Input
-                value={formData.thumbnail_url}
-                onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Xuất bản</Label>
-              <Switch
-                checked={formData.is_published}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Hủy</Button>
-            <Button onClick={handleSubmit}>Lưu</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn xóa nội dung này? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
