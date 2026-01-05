@@ -13,12 +13,20 @@ import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ImageGallery } from "@/components/content/ImageGallery";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+interface ContentImage {
+  id: string;
+  image_url: string;
+  alt_text: string | null;
+  sort_order: number | null;
+}
 
 const sortOptions = [
   { value: "newest" as SortOption, label: "Mới nhất", icon: Clock },
@@ -35,6 +43,7 @@ const ContentLibraryPage = () => {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [isLoading, setIsLoading] = useState(true);
   const [copiedDaily, setCopiedDaily] = useState(false);
+  const [dailyContentImages, setDailyContentImages] = useState<ContentImage[]>([]);
   const { profile } = useAuthStore();
 
   // Get today's date for seeding the random selection
@@ -56,6 +65,19 @@ const ContentLibraryPage = () => {
     const randomIndex = dayOfYear % nonPromoContents.length;
     return nonPromoContents[randomIndex];
   }, [contents, dayOfYear]);
+
+  // Fetch images for daily content
+  useEffect(() => {
+    const fetchDailyImages = async () => {
+      if (dailyContent) {
+        const { data } = await contentApi.getImages(dailyContent.id);
+        if (data) {
+          setDailyContentImages(data as ContentImage[]);
+        }
+      }
+    };
+    fetchDailyImages();
+  }, [dailyContent]);
 
   const handleCopyDailyContent = async () => {
     if (!dailyContent) return;
@@ -336,60 +358,58 @@ const ContentLibraryPage = () => {
                     </p>
                   </div>
 
+                  {/* Image Gallery Box */}
+                  {(dailyContent.thumbnail_url || dailyContentImages.length > 0) && (
+                    <div className="mb-4">
+                      <ImageGallery
+                        images={dailyContentImages}
+                        thumbnailUrl={dailyContent.thumbnail_url}
+                        title={dailyContent.title}
+                      />
+                    </div>
+                  )}
+
                   {/* Daily Content Card */}
-                  <div className="bg-card/80 backdrop-blur-sm rounded-xl border border-border/50 overflow-hidden">
-                    <div className="flex flex-col md:flex-row">
-                      {dailyContent.thumbnail_url && (
-                        <div className="md:w-48 shrink-0">
-                          <img
-                            src={dailyContent.thumbnail_url}
-                            alt={dailyContent.title}
-                            className="w-full h-32 md:h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <div className="flex-1 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            {dailyContent.topics && (
-                              <Badge variant="secondary" className="mb-2 bg-primary/10 text-primary border-0 text-xs">
-                                <Tag className="h-3 w-3 mr-1" />
-                                {dailyContent.topics.name}
-                              </Badge>
-                            )}
-                            <h4 className="font-semibold text-base mb-2 line-clamp-1">
-                              {dailyContent.title}
-                            </h4>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {dailyContent.body}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-4">
-                          <Button
-                            size="sm"
-                            onClick={handleCopyDailyContent}
-                            className="gap-2"
-                          >
-                            {copiedDaily ? (
-                              <>
-                                <Check className="h-4 w-4" />
-                                Đã sao chép
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-4 w-4" />
-                                Sao chép nội dung
-                              </>
-                            )}
-                          </Button>
-                          <Link to={createContentUrl(dailyContent.id, dailyContent.title)}>
-                            <Button variant="outline" size="sm">
-                              Xem chi tiết
-                            </Button>
-                          </Link>
-                        </div>
+                  <div className="bg-card/80 backdrop-blur-sm rounded-xl border border-border/50 overflow-hidden p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        {dailyContent.topics && (
+                          <Badge variant="secondary" className="mb-2 bg-primary/10 text-primary border-0 text-xs">
+                            <Tag className="h-3 w-3 mr-1" />
+                            {dailyContent.topics.name}
+                          </Badge>
+                        )}
+                        <h4 className="font-semibold text-base mb-2">
+                          {dailyContent.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          {dailyContent.body}
+                        </p>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
+                      <Button
+                        size="sm"
+                        onClick={handleCopyDailyContent}
+                        className="gap-2"
+                      >
+                        {copiedDaily ? (
+                          <>
+                            <Check className="h-4 w-4" />
+                            Đã sao chép
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            Sao chép nội dung
+                          </>
+                        )}
+                      </Button>
+                      <Link to={createContentUrl(dailyContent.id, dailyContent.title)}>
+                        <Button variant="outline" size="sm">
+                          Xem chi tiết
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>
