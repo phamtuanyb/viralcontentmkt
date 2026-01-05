@@ -137,6 +137,7 @@ export type Database = {
           topic_id: string | null
           updated_at: string
           updated_by: string | null
+          view_count: number
         }
         Insert: {
           body: string
@@ -150,6 +151,7 @@ export type Database = {
           topic_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          view_count?: number
         }
         Update: {
           body?: string
@@ -163,6 +165,7 @@ export type Database = {
           topic_id?: string | null
           updated_at?: string
           updated_by?: string | null
+          view_count?: number
         }
         Relationships: [
           {

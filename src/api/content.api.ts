@@ -11,6 +11,7 @@ export interface Content {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  view_count: number;
 }
 
 export interface ContentWithTopic extends Content {
@@ -20,6 +21,8 @@ export interface ContentWithTopic extends Content {
     slug: string;
   } | null;
 }
+
+export type SortOption = "newest" | "oldest" | "popular" | "views";
 
 export const contentApi = {
   getAll: async () => {
@@ -34,16 +37,30 @@ export const contentApi = {
     return { data: data as ContentWithTopic[] | null, error };
   },
 
-  getPublished: async () => {
-    const { data, error } = await supabase
+  getPublished: async (sortBy: SortOption = "newest") => {
+    let query = supabase
       .from("contents")
       .select(`
         *,
         topics (id, name, slug)
       `)
-      .eq("is_published", true)
-      .order("created_at", { ascending: false });
+      .eq("is_published", true);
 
+    switch (sortBy) {
+      case "oldest":
+        query = query.order("published_at", { ascending: true, nullsFirst: false });
+        break;
+      case "popular":
+      case "views":
+        query = query.order("view_count", { ascending: false });
+        break;
+      case "newest":
+      default:
+        query = query.order("published_at", { ascending: false, nullsFirst: false });
+        break;
+    }
+
+    const { data, error } = await query;
     return { data: data as ContentWithTopic[] | null, error };
   },
 
@@ -82,6 +99,11 @@ export const contentApi = {
       .order("sort_order", { ascending: true });
 
     return { data, error };
+  },
+
+  incrementViewCount: async (id: string) => {
+    const { error } = await supabase.rpc("increment_view_count", { content_id: id });
+    return { error };
   },
 
   create: async (content: { title: string; body: string; topic_id?: string; thumbnail_url?: string; is_published?: boolean; created_by?: string }) => {
