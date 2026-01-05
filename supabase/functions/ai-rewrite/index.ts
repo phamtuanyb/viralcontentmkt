@@ -81,41 +81,69 @@ serve(async (req) => {
     const finalPrompt = REWRITE_PROMPT.replace("{original_content}", content);
 
     // Call Gemini API
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: finalPrompt }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 8192,
+    const model = "gemini-1.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: finalPrompt }],
           },
-        }),
-      }
-    );
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 8192,
+        },
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
-      
-      if (response.status === 400 || response.status === 403) {
+      console.error("Gemini API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+      });
+
+      // Invalid/unauthorized API key
+      if (response.status === 401 || response.status === 403) {
         return new Response(
-          JSON.stringify({ error: "API Key không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại API Key của bạn." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "API Key không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại API Key của bạn.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      
+
+      // Client errors (request too large, malformed, etc.)
+      if (response.status === 400) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "Yêu cầu không hợp lệ hoặc nội dung quá dài. Vui lòng rút gọn nội dung và thử lại.",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Rate limit
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Bạn đang gửi quá nhanh. Vui lòng chờ 1 lát rồi thử lại." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Other errors
       return new Response(
         JSON.stringify({ error: "Lỗi khi gọi Gemini API. Vui lòng thử lại sau." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
