@@ -443,7 +443,10 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          level: number
           name: string
+          order_index: number
+          parent_id: string | null
           slug: string
           sort_order: number | null
           status: Database["public"]["Enums"]["topic_status"]
@@ -454,7 +457,10 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          level?: number
           name: string
+          order_index?: number
+          parent_id?: string | null
           slug: string
           sort_order?: number | null
           status?: Database["public"]["Enums"]["topic_status"]
@@ -465,7 +471,10 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          level?: number
           name?: string
+          order_index?: number
+          parent_id?: string | null
           slug?: string
           sort_order?: number | null
           status?: Database["public"]["Enums"]["topic_status"]
@@ -477,6 +486,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topics_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
             referencedColumns: ["id"]
           },
         ]
@@ -618,7 +634,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_topic_circular_reference: {
+        Args: { p_parent_id: string; p_topic_id: string }
+        Returns: boolean
+      }
+      compute_topic_level: { Args: { p_parent_id: string }; Returns: number }
       get_member_activity_score: { Args: { _user_id: string }; Returns: number }
+      get_next_topic_order_index: {
+        Args: { p_parent_id: string }
+        Returns: number
+      }
       get_top_active_members: {
         Args: { limit_count?: number }
         Returns: {

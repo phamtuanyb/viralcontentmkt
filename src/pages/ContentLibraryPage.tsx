@@ -109,7 +109,7 @@ const ContentLibraryPage = () => {
       setIsLoading(true);
       const [contentsRes, topicsRes] = await Promise.all([
         contentApi.getPublished(sortBy),
-        topicsApi.getActive(),
+        topicsApi.getActiveWithVisibleParent(),
       ]);
       
       if (contentsRes.data) setContents(contentsRes.data);
