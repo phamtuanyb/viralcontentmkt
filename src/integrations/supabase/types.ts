@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_escalation_logs: {
+        Row: {
+          action_type: string
+          attempted_by: string | null
+          blocked_at: string
+          details: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          attempted_by?: string | null
+          blocked_at?: string
+          details?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          attempted_by?: string | null
+          blocked_at?: string
+          details?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_escalation_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_copy_logs: {
         Row: {
           action_type: string
