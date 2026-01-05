@@ -47,6 +47,20 @@ const ContentLibraryPage = () => {
   const [showDailyContent, setShowDailyContent] = useState(false);
   const { profile } = useAuthStore();
 
+  // Get root topics (level = 0, parent_id = null) for sidebar
+  const rootTopics = topics.filter(t => t.parent_id === null);
+  
+  // Get child topics of selected parent
+  const childTopics = selectedTopic 
+    ? topics.filter(t => t.parent_id === selectedTopic).sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+    : [];
+  
+  // Get content count for a topic including its children
+  const getTopicContentCount = (topicId: string) => {
+    const childIds = topics.filter(t => t.parent_id === topicId).map(t => t.id);
+    return contents.filter(c => c.topic_id === topicId || childIds.includes(c.topic_id || "")).length;
+  };
+
   // Get today's date for display
   const today = new Date();
   const todayString = format(today, "dd/MM/yyyy");
@@ -120,17 +134,18 @@ const ContentLibraryPage = () => {
     fetchData();
   }, [sortBy]);
 
+  // When a parent topic is selected, include content from child topics too
   const filteredContents = contents.filter((content) => {
-    const matchesTopic = !selectedTopic || content.topic_id === selectedTopic;
+    let matchesTopic = !selectedTopic;
+    if (selectedTopic) {
+      const childIds = topics.filter(t => t.parent_id === selectedTopic).map(t => t.id);
+      matchesTopic = content.topic_id === selectedTopic || childIds.includes(content.topic_id || "");
+    }
     const matchesSearch = !searchQuery || 
       content.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       content.body.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTopic && matchesSearch;
   });
-
-  const getTopicContentCount = (topicId: string) => {
-    return contents.filter(c => c.topic_id === topicId).length;
-  };
 
   const selectedTopicData = topics.find(t => t.id === selectedTopic);
 
@@ -150,7 +165,7 @@ const ContentLibraryPage = () => {
             </div>
             <div>
               <h2 className="font-bold text-sm uppercase tracking-wide">Chủ đề nổi bật</h2>
-              <p className="text-xs text-muted-foreground">{topics.length} chủ đề</p>
+              <p className="text-xs text-muted-foreground">{rootTopics.length} chủ đề</p>
             </div>
           </div>
 
@@ -217,7 +232,7 @@ const ContentLibraryPage = () => {
               <div className="h-px bg-border/50" />
             </div>
 
-            {topics.map((topic, index) => (
+            {rootTopics.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)).map((topic, index) => (
               <motion.button
                 key={topic.id}
                 initial={{ opacity: 0, x: -10 }}
@@ -338,7 +353,7 @@ const ContentLibraryPage = () => {
             </div>
           </motion.div>
 
-          {/* Mobile Topics Filter */}
+          {/* Mobile Topics Filter - Root topics only */}
           <div className="lg:hidden mb-6 overflow-x-auto pb-2">
             <div className="flex items-center gap-2">
               <button
@@ -352,7 +367,7 @@ const ContentLibraryPage = () => {
               >
                 Tất cả
               </button>
-              {topics.map((topic) => (
+              {rootTopics.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)).map((topic) => (
                 <button
                   key={topic.id}
                   onClick={() => setSelectedTopic(topic.id)}
@@ -368,6 +383,38 @@ const ContentLibraryPage = () => {
               ))}
             </div>
           </div>
+
+          {/* Child Topics Section - shown when parent topic is selected */}
+          {selectedTopic && childTopics.length > 0 && !showDailyContent && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <div className="p-4 rounded-xl bg-card/50 border border-border/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Folder className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Chủ đề con</span>
+                  <Badge variant="secondary" className="text-xs">{childTopics.length}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {childTopics.map((child) => (
+                    <button
+                      key={child.id}
+                      onClick={() => setSelectedTopic(child.id)}
+                      className="px-3 py-1.5 text-sm rounded-lg bg-muted hover:bg-accent/50 transition-colors flex items-center gap-2"
+                    >
+                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                      {child.name}
+                      <Badge variant="outline" className="text-xs ml-1">
+                        {contents.filter(c => c.topic_id === child.id).length}
+                      </Badge>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Content Theo Ngày - Daily Random Content */}
           {showDailyContent && dailyContent && (
