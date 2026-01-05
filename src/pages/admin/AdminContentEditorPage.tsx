@@ -43,8 +43,17 @@ import {
   Redo,
   Copy,
   Sparkles,
+  Images,
 } from "lucide-react";
 import { format } from "date-fns";
+import { ImageUploader } from "@/components/ImageUploader";
+import { supabase } from "@/integrations/supabase/client";
+
+interface UploadedImage {
+  id: string;
+  url: string;
+  name: string;
+}
 
 const AdminContentEditorPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,6 +64,7 @@ const AdminContentEditorPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [hasChanges, setHasChanges] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -74,7 +84,11 @@ const AdminContentEditorPage = () => {
       if (topicsRes.data) setTopics(topicsRes.data);
 
       if (id) {
-        const contentRes = await contentApi.getById(id);
+        const [contentRes, imagesRes] = await Promise.all([
+          contentApi.getById(id),
+          contentApi.getImages(id)
+        ]);
+        
         if (contentRes.data) {
           setFormData({
             title: contentRes.data.title,
@@ -83,6 +97,14 @@ const AdminContentEditorPage = () => {
             thumbnail_url: contentRes.data.thumbnail_url || "",
             is_published: contentRes.data.is_published,
           });
+        }
+
+        if (imagesRes.data) {
+          setUploadedImages(imagesRes.data.map(img => ({
+            id: img.id,
+            url: img.image_url,
+            name: img.alt_text || 'Image'
+          })));
         }
       }
       
@@ -148,6 +170,28 @@ const AdminContentEditorPage = () => {
     }
   };
 
+  const saveImagesToDatabase = async (contentId: string, images: UploadedImage[]) => {
+    // First, delete existing images for this content
+    await supabase
+      .from("content_images")
+      .delete()
+      .eq("content_id", contentId);
+
+    // Then insert new images
+    if (images.length > 0) {
+      const imageRecords = images.map((img, index) => ({
+        content_id: contentId,
+        image_url: img.url,
+        alt_text: img.name,
+        sort_order: index
+      }));
+
+      await supabase
+        .from("content_images")
+        .insert(imageRecords);
+    }
+  };
+
   const handleSave = async (publish = false) => {
     if (!formData.title.trim()) {
       toast({ title: "Lỗi", description: "Vui lòng nhập tiêu đề", variant: "destructive" });
@@ -169,16 +213,23 @@ const AdminContentEditorPage = () => {
     };
 
     try {
+      let savedContentId = id;
+      
       if (isEditMode && id) {
         const { error } = await contentApi.update(id, contentData);
         if (error) throw error;
-        toast({ title: "Thành công", description: "Đã cập nhật nội dung" });
       } else {
-        const { error } = await contentApi.create(contentData);
+        const { data, error } = await contentApi.create(contentData);
         if (error) throw error;
-        toast({ title: "Thành công", description: "Đã tạo nội dung mới" });
+        savedContentId = data?.id;
+      }
+
+      // Save images to database
+      if (savedContentId) {
+        await saveImagesToDatabase(savedContentId, uploadedImages);
       }
       
+      toast({ title: "Thành công", description: isEditMode ? "Đã cập nhật nội dung" : "Đã tạo nội dung mới" });
       setHasChanges(false);
       navigate(ROUTES.ADMIN_CONTENTS);
     } catch (error: any) {
@@ -186,6 +237,11 @@ const AdminContentEditorPage = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleImagesChange = (images: UploadedImage[]) => {
+    setUploadedImages(images);
+    setHasChanges(true);
   };
 
   const handleCopyContent = async () => {
@@ -533,6 +589,20 @@ Sử dụng markdown để định dạng:
               </div>
             </div>
 
+            {/* Content Images */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                <Images className="h-4 w-4" />
+                Ảnh trong bài viết
+              </Label>
+              <ImageUploader
+                images={uploadedImages}
+                onImagesChange={handleImagesChange}
+                contentId={id}
+                maxImages={10}
+              />
+            </div>
+
             {/* Tips */}
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
               <div className="flex items-center gap-2 mb-2">
@@ -544,6 +614,7 @@ Sử dụng markdown để định dạng:
                 <li>• Sử dụng emoji để tăng tương tác</li>
                 <li>• Chia nhỏ nội dung thành đoạn</li>
                 <li>• Thêm CTA (call-to-action) cuối bài</li>
+                <li>• Thêm ảnh chất lượng cao</li>
               </ul>
             </div>
           </motion.div>
