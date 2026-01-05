@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AppRole, UserProfile } from "@/store/authStore";
 
+// List of roles that can be assigned through the UI
+// Admin role is excluded - admins can only be created at database level
+const ASSIGNABLE_ROLES: AppRole[] = ["editor", "sales"];
+
 export const usersApi = {
   getProfile: async (userId: string): Promise<UserProfile | null> => {
     const { data: userData } = await supabase
@@ -58,6 +62,24 @@ export const usersApi = {
   },
 
   assignRole: async (userId: string, role: AppRole) => {
+    // SECURITY: Block admin role assignment through API
+    if (role === "admin") {
+      console.error("SECURITY: Blocked attempt to assign admin role through API");
+      return { 
+        data: null, 
+        error: { message: "Admin role cannot be assigned through the application. Contact database administrator." } 
+      };
+    }
+
+    // Validate role is in the allowed list
+    if (!ASSIGNABLE_ROLES.includes(role)) {
+      console.error(`SECURITY: Blocked attempt to assign invalid role: ${role}`);
+      return { 
+        data: null, 
+        error: { message: "Invalid role specified" } 
+      };
+    }
+
     const { data, error } = await supabase
       .from("user_roles")
       .insert({ user_id: userId, role })
@@ -68,6 +90,14 @@ export const usersApi = {
   },
 
   removeRole: async (userId: string, role: AppRole) => {
+    // SECURITY: Block admin role removal through API
+    if (role === "admin") {
+      console.error("SECURITY: Blocked attempt to remove admin role through API");
+      return { 
+        error: { message: "Admin role cannot be modified through the application. Contact database administrator." } 
+      };
+    }
+
     const { error } = await supabase
       .from("user_roles")
       .delete()
@@ -75,5 +105,10 @@ export const usersApi = {
       .eq("role", role);
 
     return { error };
+  },
+
+  // Get list of roles that can be assigned through the UI
+  getAssignableRoles: (): AppRole[] => {
+    return [...ASSIGNABLE_ROLES];
   },
 };
