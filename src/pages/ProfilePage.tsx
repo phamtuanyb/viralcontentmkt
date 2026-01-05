@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Phone, FileSignature, Save, Loader2, Link2 } from "lucide-react";
+import { Phone, FileSignature, Save, Loader2, Link2, Sparkles } from "lucide-react";
 import { AvatarUploader } from "@/components/profile/AvatarUploader";
 import { SocialLinksEditor } from "@/components/profile/SocialLinksEditor";
+import { GeminiApiKeyEditor } from "@/components/profile/GeminiApiKeyEditor";
 import { Leaderboard } from "@/components/Leaderboard";
 
 const ProfilePage = () => {
@@ -164,6 +165,15 @@ const ProfilePage = () => {
                 <h3 className="text-lg font-semibold">Liên kết mạng xã hội</h3>
               </div>
               <SocialLinksEditor userId={user.id} />
+            </div>
+
+            {/* Gemini API Key */}
+            <div className="glass rounded-xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Cài đặt AI Content</h3>
+              </div>
+              <GeminiApiKeyEditor userId={user.id} />
             </div>
 
             {/* Preview */}
