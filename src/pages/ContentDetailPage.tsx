@@ -51,7 +51,13 @@ const ContentDetailPage = () => {
     const fetchContent = async () => {
       if (!id) return;
       
+      // Scroll to top when navigating to new article
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
       setIsLoading(true);
+      setContent(null);
+      setImages([]);
+      
       const [contentRes, imagesRes] = await Promise.all([
         contentApi.getById(id),
         contentApi.getImages(id),
