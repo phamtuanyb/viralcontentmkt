@@ -62,7 +62,7 @@ const App = () => (
                 }
               >
                 <Route path={ROUTES.CONTENT_LIBRARY} element={<ContentLibraryPage />} />
-                <Route path="/library/:id" element={<ContentDetailPage />} />
+                <Route path="/content/:slug" element={<ContentDetailPage />} />
                 <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
               </Route>
 

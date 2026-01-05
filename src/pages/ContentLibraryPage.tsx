@@ -6,6 +6,7 @@ import { topicsApi, type Topic } from "@/api/topics.api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/constants";
+import { createContentUrl } from "@/lib/slug";
 import { Search, FileText, Calendar, Tag, Folder, FolderOpen, ChevronRight, Sparkles, ArrowUpDown, Clock, Eye, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -295,7 +296,7 @@ const ContentLibraryPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03 }}
                 >
-                  <Link to={`/library/${content.id}`}>
+                  <Link to={createContentUrl(content.id, content.title)}>
                     <div className="glass rounded-xl overflow-hidden card-hover h-full group">
                       {content.thumbnail_url && (
                         <div className="aspect-video overflow-hidden bg-muted">

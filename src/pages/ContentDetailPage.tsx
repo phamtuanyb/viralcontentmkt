@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { ROUTES } from "@/constants";
+import { extractIdFromSlug } from "@/lib/slug";
 import { SuggestedArticles } from "@/components/SuggestedArticles";
 import { 
   ArrowLeft, 
@@ -38,7 +39,7 @@ interface ContentImage {
 }
 
 const ContentDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const { user, profile } = useAuthStore();
   const [content, setContent] = useState<ContentWithTopic | null>(null);
   const [images, setImages] = useState<ContentImage[]>([]);
@@ -49,7 +50,7 @@ const ContentDetailPage = () => {
 
   useEffect(() => {
     const fetchContent = async () => {
-      if (!id) return;
+      if (!slug) return;
       
       // Scroll to top when navigating to new article
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -58,18 +59,21 @@ const ContentDetailPage = () => {
       setContent(null);
       setImages([]);
       
-      const [contentRes, imagesRes] = await Promise.all([
-        contentApi.getById(id),
-        contentApi.getImages(id),
-      ]);
+      // Extract short ID from slug
+      const shortId = extractIdFromSlug(slug);
       
-      if (contentRes.data) setContent(contentRes.data);
-      if (imagesRes.data) setImages(imagesRes.data);
+      const contentRes = await contentApi.getByShortId(shortId);
+      
+      if (contentRes.data) {
+        setContent(contentRes.data);
+        const imagesRes = await contentApi.getImages(contentRes.data.id);
+        if (imagesRes.data) setImages(imagesRes.data);
+      }
       setIsLoading(false);
     };
 
     fetchContent();
-  }, [id]);
+  }, [slug]);
 
   const handleCopyText = async () => {
     if (!user) {

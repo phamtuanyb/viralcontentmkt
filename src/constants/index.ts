@@ -5,7 +5,7 @@ export const ROUTES = {
   AUTH: "/auth",
   WAITING_ROOM: "/waiting-room",
   CONTENT_LIBRARY: "/library",
-  CONTENT_DETAIL: "/library/:id",
+  CONTENT_DETAIL: "/content/:slug",
   PROFILE: "/profile",
   ADMIN: "/admin",
   ADMIN_USERS: "/admin/users",
