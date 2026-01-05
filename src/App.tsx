@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 // Pages
 import LandingPage from "@/pages/LandingPage";
 import AuthPage from "@/pages/AuthPage";
+import LoginRedirectPage from "@/pages/LoginRedirectPage";
 import WaitingRoomPage from "@/pages/WaitingRoomPage";
 import ContentLibraryPage from "@/pages/ContentLibraryPage";
 import ContentDetailPage from "@/pages/ContentDetailPage";
@@ -42,6 +43,16 @@ const App = () => (
 
               {/* Auth page */}
               <Route path={ROUTES.AUTH} element={<AuthPage />} />
+
+              {/* Login redirect page for active users */}
+              <Route
+                path={ROUTES.LOGIN_REDIRECT}
+                element={
+                  <RouteGuard requireAuth requireActive>
+                    <LoginRedirectPage />
+                  </RouteGuard>
+                }
+              />
 
               {/* Waiting room for pending users */}
               <Route

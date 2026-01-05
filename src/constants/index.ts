@@ -3,6 +3,7 @@ export const APP_NAME = "MKT Viral Content Platform";
 export const ROUTES = {
   HOME: "/",
   AUTH: "/auth",
+  LOGIN_REDIRECT: "/login-redirect",
   WAITING_ROOM: "/waiting-room",
   CONTENT_LIBRARY: "/library",
   CONTENT_DETAIL: "/content/:slug",
