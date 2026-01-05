@@ -44,6 +44,7 @@ const ContentLibraryPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [copiedDaily, setCopiedDaily] = useState(false);
   const [dailyContentImages, setDailyContentImages] = useState<ContentImage[]>([]);
+  const [showDailyContent, setShowDailyContent] = useState(false);
   const { profile } = useAuthStore();
 
   // Get today's date for seeding the random selection
@@ -145,11 +146,14 @@ const ContentLibraryPage = () => {
           {/* Topics List */}
           <nav className="space-y-1">
             <button
-              onClick={() => setSelectedTopic(null)}
+              onClick={() => {
+                setSelectedTopic(null);
+                setShowDailyContent(false);
+              }}
               className={cn(
                 "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
                 "hover:bg-accent/50",
-                selectedTopic === null 
+                selectedTopic === null && !showDailyContent
                   ? "bg-primary/10 text-primary font-medium border border-primary/20" 
                   : "text-foreground"
               )}
@@ -157,7 +161,7 @@ const ContentLibraryPage = () => {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "p-1.5 rounded-md transition-colors",
-                  selectedTopic === null ? "bg-primary/20" : "bg-muted"
+                  selectedTopic === null && !showDailyContent ? "bg-primary/20" : "bg-muted"
                 )}>
                   <FolderOpen className="h-4 w-4" />
                 </div>
@@ -167,6 +171,36 @@ const ContentLibraryPage = () => {
                 {contents.length}
               </Badge>
             </button>
+
+            {/* Content Theo Ngày Menu Item */}
+            {dailyContent && (
+              <button
+                onClick={() => {
+                  setShowDailyContent(true);
+                  setSelectedTopic(null);
+                }}
+                className={cn(
+                  "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
+                  "hover:bg-accent/50",
+                  showDailyContent 
+                    ? "bg-gradient-to-r from-primary/20 to-secondary/20 text-primary font-medium border border-primary/20" 
+                    : "text-foreground"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "p-1.5 rounded-md transition-colors",
+                    showDailyContent ? "bg-primary/20" : "bg-gradient-to-br from-primary/10 to-secondary/10"
+                  )}>
+                    <Gift className="h-4 w-4 text-primary" />
+                  </div>
+                  <span>Content Theo Ngày</span>
+                </div>
+                <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
+                  Mới
+                </Badge>
+              </button>
+            )}
 
             <div className="pt-2 pb-1 px-3">
               <div className="h-px bg-border/50" />
@@ -178,7 +212,10 @@ const ContentLibraryPage = () => {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => setSelectedTopic(topic.id)}
+                onClick={() => {
+                  setSelectedTopic(topic.id);
+                  setShowDailyContent(false);
+                }}
                 className={cn(
                   "w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
                   "hover:bg-accent/50 group",
@@ -322,7 +359,7 @@ const ContentLibraryPage = () => {
           </div>
 
           {/* Content Theo Ngày - Daily Random Content */}
-          {dailyContent && (
+          {showDailyContent && dailyContent && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

@@ -13,6 +13,7 @@ import { extractIdFromSlug } from "@/lib/slug";
 import { SuggestedArticles } from "@/components/SuggestedArticles";
 import { ContentComments } from "@/components/content/ContentComments";
 import { StarRating } from "@/components/content/StarRating";
+import { ImageGallery } from "@/components/content/ImageGallery";
 import { 
   ArrowLeft, 
   Copy, 
@@ -22,14 +23,8 @@ import {
   CheckCircle, 
   Lock,
   Share2,
-  Bookmark,
-  Heart,
-  MessageCircle,
   Clock,
-  User,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -38,6 +33,7 @@ interface ContentImage {
   id: string;
   image_url: string;
   alt_text: string | null;
+  sort_order: number | null;
 }
 
 const ContentDetailPage = () => {
@@ -47,8 +43,6 @@ const ContentDetailPage = () => {
   const [images, setImages] = useState<ContentImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedText, setCopiedText] = useState(false);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [showImageModal, setShowImageModal] = useState(false);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -108,35 +102,6 @@ const ContentDetailPage = () => {
       toast({ title: "Đã copy!", description: "Nội dung đã được copy vào clipboard" });
     } catch {
       toast({ title: "Lỗi", description: "Không thể copy nội dung", variant: "destructive" });
-    }
-  };
-
-  const handleDownloadImage = async (imageUrl: string, index: number) => {
-    if (!user) {
-      toast({ title: "Yêu cầu đăng nhập", description: "Vui lòng đăng nhập để tải ảnh", variant: "destructive" });
-      return;
-    }
-
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `content-image-${index + 1}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      // Log the download action
-      if (content) {
-        await contentApi.logCopy(user.id, content.id, "download_image");
-      }
-
-      toast({ title: "Đã tải!", description: "Ảnh đã được tải xuống" });
-    } catch {
-      toast({ title: "Lỗi", description: "Không thể tải ảnh", variant: "destructive" });
     }
   };
 
@@ -354,8 +319,8 @@ const ContentDetailPage = () => {
             </div>
           </motion.div>
 
-          {/* Content Images */}
-          {images.length > 0 && (
+          {/* Content Images Gallery */}
+          {(images.length > 0 || content.thumbnail_url) && (
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -366,60 +331,14 @@ const ContentDetailPage = () => {
                 <div className="p-2 rounded-lg bg-primary/10">
                   <Download className="h-5 w-5 text-primary" />
                 </div>
-                Hình ảnh đính kèm ({images.length})
+                Hình ảnh ({images.length + (content.thumbnail_url ? 1 : 0)})
               </h2>
 
-              <div className="space-y-4">
-                {images.map((image, index) => (
-                  <motion.div
-                    key={image.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + index * 0.05 }}
-                    className="glass rounded-xl overflow-hidden"
-                  >
-                    {/* Image Container */}
-                    <div 
-                      className="relative cursor-pointer"
-                      onClick={() => {
-                        setActiveImageIndex(index);
-                        setShowImageModal(true);
-                      }}
-                    >
-                      <img
-                        src={image.image_url}
-                        alt={image.alt_text || `Hình ${index + 1}`}
-                        className="w-full h-auto object-contain max-h-[500px] bg-muted/30"
-                      />
-                    </div>
-                    
-                    {/* Download Button Area */}
-                    <div className="p-4 border-t border-border flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">
-                        Hình {index + 1} / {images.length}
-                      </span>
-                      <Button
-                        onClick={() => handleDownloadImage(image.image_url, index)}
-                        disabled={!user}
-                        variant="default"
-                        className="gap-2"
-                      >
-                        {user ? (
-                          <>
-                            <Download className="h-4 w-4" />
-                            Tải về máy tính
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="h-4 w-4" />
-                            Đăng nhập để tải
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+              <ImageGallery
+                images={images}
+                thumbnailUrl={content.thumbnail_url}
+                title={content.title}
+              />
             </motion.section>
           )}
 
@@ -473,75 +392,6 @@ const ContentDetailPage = () => {
         </div>
       </div>
 
-      {/* Image Modal */}
-      <AnimatePresence>
-        {showImageModal && images.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-xl flex items-center justify-center p-4"
-            onClick={() => setShowImageModal(false)}
-          >
-            <button
-              onClick={() => setShowImageModal(false)}
-              className="absolute top-4 right-4 p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
-            >
-              ✕
-            </button>
-
-            <div className="relative max-w-5xl max-h-[80vh] w-full">
-              <img
-                src={images[activeImageIndex].image_url}
-                alt={images[activeImageIndex].alt_text || ""}
-                className="w-full h-full object-contain rounded-lg"
-                onClick={(e) => e.stopPropagation()}
-              />
-
-              {images.length > 1 && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
-                    }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveImageIndex((prev) => (prev + 1) % images.length);
-                    }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-background/80 hover:bg-background transition-colors"
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </button>
-                </>
-              )}
-
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4">
-                <span className="text-sm text-muted-foreground bg-background/80 px-3 py-1 rounded-full">
-                  {activeImageIndex + 1} / {images.length}
-                </span>
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownloadImage(images[activeImageIndex].image_url, activeImageIndex);
-                  }}
-                  disabled={!user}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Tải ảnh
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
