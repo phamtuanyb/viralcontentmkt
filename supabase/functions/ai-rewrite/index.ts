@@ -79,7 +79,7 @@ serve(async (req) => {
       });
     }
 
-    // Require logged-in user (even though function is public)
+    // Require logged-in user
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -119,65 +119,138 @@ serve(async (req) => {
       });
     }
 
-    const finalPrompt = REWRITE_PROMPT.replace("{original_content}", content);
+    const userId = userData.user.id;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      return new Response(JSON.stringify({ error: "Server AI key missing" }), {
+    // Fetch user's Gemini API key from user_profiles
+    const { data: profileData, error: profileError } = await supabase
+      .from("user_profiles")
+      .select("gemini_api_key")
+      .eq("user_id", userId)
+      .single();
+
+    if (profileError) {
+      console.error("Error fetching user profile:", profileError.message);
+      return new Response(JSON.stringify({ error: "Không thể lấy thông tin người dùng" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const geminiApiKey = profileData?.gemini_api_key;
+    if (!geminiApiKey) {
+      return new Response(
+        JSON.stringify({ error: "Bạn chưa cấu hình Gemini API Key. Vui lòng vào trang Cá nhân để nhập API Key." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const finalPrompt = REWRITE_PROMPT.replace("{original_content}", content);
+
+    // Call Google Gemini API directly with model gemini-2.5-flash
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
+    
+    console.log("Calling Gemini API with model: gemini-2.5-flash-preview-05-20");
+
+    const geminiResp = await fetch(geminiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "user", content: finalPrompt }],
+        contents: [
+          {
+            parts: [{ text: finalPrompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 8192,
+        },
       }),
     });
 
-    if (!aiResp.ok) {
-      const t = await aiResp.text();
-      console.error("AI gateway error:", { status: aiResp.status, body: t });
+    if (!geminiResp.ok) {
+      const errorText = await geminiResp.text();
+      console.error("Gemini API error:", { status: geminiResp.status, body: errorText });
 
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Bạn đang gửi quá nhanh. Vui lòng thử lại sau." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (aiResp.status === 402) {
+      if (geminiResp.status === 401 || geminiResp.status === 403) {
         return new Response(
-          JSON.stringify({ error: "Hệ thống AI đang hết quota/credits. Vui lòng thử lại sau hoặc nạp thêm credits." }),
+          JSON.stringify({ error: "API Key không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại API Key trong trang Cá nhân." }),
           {
-            status: 402,
+            status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
+          }
         );
       }
 
-      return new Response(JSON.stringify({ error: "Lỗi khi gọi AI. Vui lòng thử lại sau." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (geminiResp.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Bạn đã vượt quá giới hạn API. Vui lòng thử lại sau hoặc kiểm tra quota API Key." }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      if (geminiResp.status === 400) {
+        // Check if it's a content too long error
+        if (errorText.includes("too long") || errorText.includes("token")) {
+          return new Response(
+            JSON.stringify({ error: "Nội dung quá dài. Vui lòng giảm độ dài nội dung và thử lại." }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        return new Response(
+          JSON.stringify({ error: "Yêu cầu không hợp lệ. Vui lòng thử lại." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ error: "Lỗi khi gọi Gemini API. Vui lòng thử lại sau." }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    const aiData = await aiResp.json();
-    const rewrittenContent = aiData?.choices?.[0]?.message?.content;
+    const geminiData = await geminiResp.json();
+    console.log("Gemini API response received");
+
+    const rewrittenContent = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!rewrittenContent) {
-      console.error("AI gateway returned empty content", aiData);
-      return new Response(JSON.stringify({ error: "Không nhận được kết quả từ AI. Vui lòng thử lại." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("Gemini API returned empty content", JSON.stringify(geminiData));
+      
+      // Check for safety blocks
+      if (geminiData?.candidates?.[0]?.finishReason === "SAFETY") {
+        return new Response(
+          JSON.stringify({ error: "Nội dung bị chặn do vi phạm chính sách an toàn của Gemini." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ error: "Không nhận được kết quả từ Gemini. Vui lòng thử lại." }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     return new Response(JSON.stringify({ rewrittenContent }), {

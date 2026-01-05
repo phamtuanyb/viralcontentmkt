@@ -12,6 +12,7 @@ export interface UserProfile {
   status: UserStatus;
   phone_number: string | null;
   signature_text: string | null;
+  gemini_api_key: string | null;
 }
 
 interface AuthState {

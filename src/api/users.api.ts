@@ -29,6 +29,7 @@ export const usersApi = {
       status: userData.status as UserProfile["status"],
       phone_number: profileData?.phone_number || null,
       signature_text: profileData?.signature_text || null,
+      gemini_api_key: profileData?.gemini_api_key || null,
     };
   },
 

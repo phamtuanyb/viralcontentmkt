@@ -19,6 +19,16 @@ export const AIContentRewrite = ({ originalContent }: AIContentRewriteProps) => 
   const handleAIContent = async () => {
     if (!user) return;
 
+    // Check if user has configured Gemini API key
+    if (!profile?.gemini_api_key) {
+      toast({
+        title: "Chưa cấu hình API Key",
+        description: "Vui lòng vào trang Cá nhân để nhập Gemini API Key trước khi sử dụng tính năng AI.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-rewrite", {
