@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ImageGallery } from "@/components/content/ImageGallery";
+import { AdBannerDisplay } from "@/components/AdBannerDisplay";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -511,6 +512,9 @@ const ContentLibraryPage = () => {
               </div>
             </motion.div>
           )}
+
+          {/* Ad Banner */}
+          <AdBannerDisplay placement="library" className="mb-6" />
 
           {/* Content Grid */}
           {isLoading ? (

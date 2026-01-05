@@ -16,6 +16,7 @@ export const ROUTES = {
   ADMIN_CONTENT_EDIT: "/admin/contents/:id/edit",
   ADMIN_BANNERS: "/admin/banners",
   ADMIN_PROGRAM_BANNERS: "/admin/program-banners",
+  ADMIN_AD_BANNERS: "/admin/ad-banners",
 } as const;
 
 export const USER_STATUS = {

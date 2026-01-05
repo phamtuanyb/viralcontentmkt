@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_banners: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string
+          placement_type: string
+          sort_order: number | null
+          status: string
+          target_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url: string
+          placement_type: string
+          sort_order?: number | null
+          status?: string
+          target_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string
+          placement_type?: string
+          sort_order?: number | null
+          status?: string
+          target_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_banners_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_escalation_logs: {
         Row: {
           action_type: string
