@@ -2,3 +2,6 @@ project_id = "raswbxfttpxbxahtkzrc"
 
 [functions.reset-password]
 verify_jwt = true
+
+[functions.ai-rewrite]
+verify_jwt = false
