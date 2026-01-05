@@ -3,8 +3,24 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { AuthProvider, RouteGuard } from "@/auth";
+import { PublicLayout, AppLayout, AdminLayout } from "@/layouts";
+import { ROUTES } from "@/constants";
+
+// Pages
+import LandingPage from "@/pages/LandingPage";
+import AuthPage from "@/pages/AuthPage";
+import WaitingRoomPage from "@/pages/WaitingRoomPage";
+import ContentLibraryPage from "@/pages/ContentLibraryPage";
+import ContentDetailPage from "@/pages/ContentDetailPage";
+import ProfilePage from "@/pages/ProfilePage";
+import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
+import AdminUsersPage from "@/pages/admin/AdminUsersPage";
+import AdminTopicsPage from "@/pages/admin/AdminTopicsPage";
+import AdminContentsPage from "@/pages/admin/AdminContentsPage";
+import AdminBannersPage from "@/pages/admin/AdminBannersPage";
+import AdminProgramBannersPage from "@/pages/admin/AdminProgramBannersPage";
+import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -14,11 +30,58 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route element={<PublicLayout />}>
+              <Route path={ROUTES.HOME} element={<LandingPage />} />
+            </Route>
+
+            {/* Auth page */}
+            <Route path={ROUTES.AUTH} element={<AuthPage />} />
+
+            {/* Waiting room for pending users */}
+            <Route
+              path={ROUTES.WAITING_ROOM}
+              element={
+                <RouteGuard requireAuth allowPending>
+                  <WaitingRoomPage />
+                </RouteGuard>
+              }
+            />
+
+            {/* App routes (requires active user) */}
+            <Route
+              element={
+                <RouteGuard requireAuth requireActive>
+                  <AppLayout />
+                </RouteGuard>
+              }
+            >
+              <Route path={ROUTES.CONTENT_LIBRARY} element={<ContentLibraryPage />} />
+              <Route path="/library/:id" element={<ContentDetailPage />} />
+              <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+            </Route>
+
+            {/* Admin routes */}
+            <Route
+              element={
+                <RouteGuard requireAuth requireActive requireAdmin>
+                  <AdminLayout />
+                </RouteGuard>
+              }
+            >
+              <Route path={ROUTES.ADMIN} element={<AdminDashboardPage />} />
+              <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
+              <Route path={ROUTES.ADMIN_TOPICS} element={<AdminTopicsPage />} />
+              <Route path={ROUTES.ADMIN_CONTENTS} element={<AdminContentsPage />} />
+              <Route path={ROUTES.ADMIN_BANNERS} element={<AdminBannersPage />} />
+              <Route path={ROUTES.ADMIN_PROGRAM_BANNERS} element={<AdminProgramBannersPage />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
