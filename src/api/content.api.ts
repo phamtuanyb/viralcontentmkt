@@ -92,15 +92,14 @@ export const contentApi = {
   },
 
   getByShortId: async (shortId: string) => {
-    // Query using ilike for case-insensitive pattern matching on UUID ending
+    // Query using the short_id column (generated column: last 8 chars of id)
     const { data, error } = await supabase
       .from("contents")
       .select(`
         *,
         topics (id, name, slug)
       `)
-      .ilike("id", `%${shortId}`)
-      .eq("is_published", true)
+      .eq("short_id", shortId)
       .maybeSingle();
 
     return { data: data as ContentWithTopic | null, error };

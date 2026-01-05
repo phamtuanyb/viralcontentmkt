@@ -167,6 +167,7 @@ export type Database = {
           id: string
           is_published: boolean
           published_at: string | null
+          short_id: string | null
           thumbnail_url: string | null
           title: string
           topic_id: string | null
@@ -181,6 +182,7 @@ export type Database = {
           id?: string
           is_published?: boolean
           published_at?: string | null
+          short_id?: string | null
           thumbnail_url?: string | null
           title: string
           topic_id?: string | null
@@ -195,6 +197,7 @@ export type Database = {
           id?: string
           is_published?: boolean
           published_at?: string | null
+          short_id?: string | null
           thumbnail_url?: string | null
           title?: string
           topic_id?: string | null
