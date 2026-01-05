@@ -4,43 +4,41 @@ import { ROUTES, APP_NAME } from "@/constants";
 import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/api/auth.api";
 import { Zap, Library, User, LogOut, Settings } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
 export const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile, isAdmin, reset } = useAuthStore();
-
+  const {
+    profile,
+    isAdmin,
+    reset
+  } = useAuthStore();
   const handleLogout = async () => {
-    const { error } = await authApi.signOut();
+    const {
+      error
+    } = await authApi.signOut();
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
     } else {
       reset();
       navigate(ROUTES.HOME);
     }
   };
-
   const getInitials = (name: string | null | undefined, email: string) => {
     if (name) {
-      return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+      return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
     }
     return email.slice(0, 2).toUpperCase();
   };
-
   const isActiveRoute = (path: string) => location.pathname === path;
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -50,34 +48,24 @@ export const AppLayout = () => {
                 <Zap className="h-5 w-5 text-primary" />
               </div>
               <span className="text-lg font-bold tracking-tight hidden sm:block">
-                <span className="gradient-text">MKT</span> Viral
+                <span className="gradient-text">MKT</span> Viral ​Content
               </span>
             </Link>
 
             <nav className="flex items-center gap-1">
               <Link to={ROUTES.CONTENT_LIBRARY}>
-                <Button 
-                  variant={isActiveRoute(ROUTES.CONTENT_LIBRARY) ? "secondary" : "ghost"}
-                  size="sm"
-                  className="gap-2"
-                >
+                <Button variant={isActiveRoute(ROUTES.CONTENT_LIBRARY) ? "secondary" : "ghost"} size="sm" className="gap-2">
                   <Library className="h-4 w-4" />
                   <span className="hidden sm:inline">Thư viện</span>
                 </Button>
               </Link>
               
-              {isAdmin() && (
-                <Link to={ROUTES.ADMIN}>
-                  <Button 
-                    variant={location.pathname.startsWith("/admin") ? "secondary" : "ghost"}
-                    size="sm"
-                    className="gap-2"
-                  >
+              {isAdmin() && <Link to={ROUTES.ADMIN}>
+                  <Button variant={location.pathname.startsWith("/admin") ? "secondary" : "ghost"} size="sm" className="gap-2">
                     <Settings className="h-4 w-4" />
                     <span className="hidden sm:inline">Quản trị</span>
                   </Button>
-                </Link>
-              )}
+                </Link>}
             </nav>
           </div>
 
@@ -125,6 +113,5 @@ export const AppLayout = () => {
       <main className="pt-16 min-h-[calc(100vh-4rem)]">
         <Outlet />
       </main>
-    </div>
-  );
+    </div>;
 };
