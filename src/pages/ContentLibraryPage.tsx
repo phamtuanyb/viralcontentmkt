@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { contentApi, type ContentWithTopic, type SortOption } from "@/api/content.api";
@@ -47,25 +47,29 @@ const ContentLibraryPage = () => {
   const [showDailyContent, setShowDailyContent] = useState(false);
   const { profile } = useAuthStore();
 
-  // Get today's date for seeding the random selection
+  // Get today's date for display
   const today = new Date();
   const todayString = format(today, "dd/MM/yyyy");
-  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
 
-  // Get random content of the day (excluding promotional content)
-  const dailyContent = useMemo(() => {
-    // Filter out promotional content (assuming topic name contains "khuyến mãi" or similar)
+  // State for random daily content
+  const [dailyContent, setDailyContent] = useState<ContentWithTopic | null>(null);
+
+  // Select random content each time page loads (excluding promotional content)
+  useEffect(() => {
     const nonPromoContents = contents.filter(c => {
       const topicName = c.topics?.name?.toLowerCase() || "";
       return !topicName.includes("khuyến mãi") && !topicName.includes("khuyen mai") && !topicName.includes("promotion");
     });
     
-    if (nonPromoContents.length === 0) return null;
+    if (nonPromoContents.length === 0) {
+      setDailyContent(null);
+      return;
+    }
     
-    // Use day of year as seed for consistent daily random
-    const randomIndex = dayOfYear % nonPromoContents.length;
-    return nonPromoContents[randomIndex];
-  }, [contents, dayOfYear]);
+    // Random selection each time
+    const randomIndex = Math.floor(Math.random() * nonPromoContents.length);
+    setDailyContent(nonPromoContents[randomIndex]);
+  }, [contents]);
 
   // Fetch images for daily content
   useEffect(() => {
