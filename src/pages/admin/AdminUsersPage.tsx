@@ -36,6 +36,9 @@ const AdminUsersPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  // Get only the roles that can be assigned through UI (excludes admin)
+  const assignableRoles = usersApi.getAssignableRoles();
+
   const fetchUsers = async () => {
     setIsLoading(true);
     const { data } = await usersApi.getAllUsers();
@@ -80,6 +83,17 @@ const AdminUsersPage = () => {
         return <Badge className="bg-destructive/20 text-destructive border-0"><Ban className="h-3 w-3 mr-1" />Suspended</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getRoleLabel = (role: AppRole): string => {
+    switch (role) {
+      case "sales":
+        return "Sales";
+      case "editor":
+        return "Editor";
+      default:
+        return role;
     }
   };
 
@@ -158,9 +172,11 @@ const AdminUsersPage = () => {
                           <span className="text-xs">Gán quyền</span>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="sales">Sales</SelectItem>
-                          <SelectItem value="editor">Editor</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
+                          {assignableRoles.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {getRoleLabel(role)}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

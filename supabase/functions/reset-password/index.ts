@@ -12,6 +12,33 @@ serve(async (req) => {
   }
 
   try {
+    // Verify authorization header exists
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.log("SECURITY: Unauthorized password reset attempt - no auth header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create client with user's auth to verify identity
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Get the authenticated user
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.log("SECURITY: Unauthorized password reset attempt - invalid token");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { userId, newPassword } = await req.json();
 
     if (!userId || !newPassword) {
@@ -21,6 +48,7 @@ serve(async (req) => {
       );
     }
 
+    // Create admin client for checking roles
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -32,6 +60,21 @@ serve(async (req) => {
       }
     );
 
+    // Check if the caller is an admin
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+      _user_id: user.id,
+      _role: "admin",
+    });
+
+    if (!isAdmin) {
+      console.log(`SECURITY: Non-admin user ${user.id} attempted to reset password for ${userId}`);
+      return new Response(
+        JSON.stringify({ error: "Forbidden - Admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Perform the password reset
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
       { password: newPassword }
@@ -45,7 +88,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Password updated successfully for user:", userId);
+    console.log(`Password updated successfully for user ${userId} by admin ${user.id}`);
 
     return new Response(
       JSON.stringify({ success: true, message: "Password updated successfully" }),
