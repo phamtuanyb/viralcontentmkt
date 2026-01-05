@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import DOMPurify from "dompurify";
 import { contentApi, type ContentWithTopic } from "@/api/content.api";
 import { topicsApi, type Topic } from "@/api/topics.api";
 import { useAuthStore } from "@/store/authStore";
@@ -251,7 +252,7 @@ const AdminContentEditorPage = () => {
 
   const renderPreview = () => {
     // Simple markdown-like preview
-    let html = formData.body
+    const html = formData.body
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.*?)\*/g, "<em>$1</em>")
       .replace(/^# (.*$)/gm, "<h1 class='text-2xl font-bold mb-3'>$1</h1>")
@@ -260,7 +261,11 @@ const AdminContentEditorPage = () => {
       .replace(/`(.*?)`/g, "<code class='bg-muted px-1.5 py-0.5 rounded text-sm'>$1</code>")
       .replace(/\n/g, "<br />");
 
-    return html;
+    return DOMPurify.sanitize(html, {
+      USE_PROFILES: { html: true },
+      ALLOWED_TAGS: ['strong', 'em', 'h1', 'h2', 'blockquote', 'code', 'br', 'p', 'span'],
+      ALLOWED_ATTR: ['class']
+    });
   };
 
   if (isLoading) {
