@@ -24,6 +24,10 @@ export interface ContentWithTopic extends Content {
 
 export type SortOption = "newest" | "oldest" | "popular" | "views";
 
+export interface ContentWithCopyCount extends ContentWithTopic {
+  copy_count?: number;
+}
+
 export const contentApi = {
   getAll: async () => {
     const { data, error } = await supabase
@@ -38,6 +42,49 @@ export const contentApi = {
   },
 
   getPublished: async (sortBy: SortOption = "newest") => {
+    // For "popular" sorting, we need to get copy counts and sort manually
+    if (sortBy === "popular") {
+      // First get all published contents
+      const { data: contents, error: contentsError } = await supabase
+        .from("contents")
+        .select(`
+          *,
+          topics (id, name, slug)
+        `)
+        .eq("is_published", true);
+
+      if (contentsError || !contents) {
+        return { data: null, error: contentsError };
+      }
+
+      // Get copy counts for each content
+      const { data: copyCounts, error: copyError } = await supabase
+        .from("content_copy_logs")
+        .select("content_id");
+
+      if (copyError) {
+        return { data: null, error: copyError };
+      }
+
+      // Count copies per content
+      const copyCountMap: Record<string, number> = {};
+      copyCounts?.forEach((log) => {
+        if (log.content_id) {
+          copyCountMap[log.content_id] = (copyCountMap[log.content_id] || 0) + 1;
+        }
+      });
+
+      // Sort by copy count descending
+      const sortedContents = contents.sort((a, b) => {
+        const countA = copyCountMap[a.id] || 0;
+        const countB = copyCountMap[b.id] || 0;
+        return countB - countA;
+      });
+
+      return { data: sortedContents as ContentWithTopic[], error: null };
+    }
+
+    // For other sort options, use database ordering
     let query = supabase
       .from("contents")
       .select(`
@@ -48,15 +95,14 @@ export const contentApi = {
 
     switch (sortBy) {
       case "oldest":
-        query = query.order("published_at", { ascending: true, nullsFirst: false });
+        query = query.order("created_at", { ascending: true });
         break;
-      case "popular":
       case "views":
         query = query.order("view_count", { ascending: false });
         break;
       case "newest":
       default:
-        query = query.order("published_at", { ascending: false, nullsFirst: false });
+        query = query.order("created_at", { ascending: false });
         break;
     }
 
