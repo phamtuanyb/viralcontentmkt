@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ROUTES, APP_NAME } from "@/constants";
 import { Zap } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const PublicLayout = () => {
   const navigate = useNavigate();
@@ -20,12 +21,15 @@ export const PublicLayout = () => {
             </span>
           </Link>
           
-          <Button 
-            onClick={() => navigate(ROUTES.AUTH)}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg hover:shadow-xl transition-all"
-          >
-            Đăng nhập
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button 
+              onClick={() => navigate(ROUTES.AUTH)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg hover:shadow-xl transition-all"
+            >
+              Đăng nhập
+            </Button>
+          </div>
         </div>
       </header>
 

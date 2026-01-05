@@ -9,6 +9,7 @@ import { ROUTES } from "@/constants";
 import { toast } from "@/hooks/use-toast";
 import { Zap, Loader2, ArrowLeft } from "lucide-react";
 import { z } from "zod";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const emailSchema = z.string().email("Email không hợp lệ");
 const passwordSchema = z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự");
@@ -97,6 +98,11 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-primary/5 rounded-full blur-3xl" />

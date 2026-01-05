@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, RouteGuard } from "@/auth";
 import { PublicLayout, AppLayout, AdminLayout } from "@/layouts";
 import { ROUTES } from "@/constants";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Pages
 import LandingPage from "@/pages/LandingPage";
@@ -18,6 +19,7 @@ import AdminDashboardPage from "@/pages/admin/AdminDashboardPage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminTopicsPage from "@/pages/admin/AdminTopicsPage";
 import AdminContentsPage from "@/pages/admin/AdminContentsPage";
+import AdminContentEditorPage from "@/pages/admin/AdminContentEditorPage";
 import AdminBannersPage from "@/pages/admin/AdminBannersPage";
 import AdminProgramBannersPage from "@/pages/admin/AdminProgramBannersPage";
 import NotFound from "@/pages/NotFound";
@@ -25,66 +27,70 @@ import NotFound from "@/pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route element={<PublicLayout />}>
-              <Route path={ROUTES.HOME} element={<LandingPage />} />
-            </Route>
+  <ThemeProvider defaultTheme="dark" storageKey="mkt-viral-theme">
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route element={<PublicLayout />}>
+                <Route path={ROUTES.HOME} element={<LandingPage />} />
+              </Route>
 
-            {/* Auth page */}
-            <Route path={ROUTES.AUTH} element={<AuthPage />} />
+              {/* Auth page */}
+              <Route path={ROUTES.AUTH} element={<AuthPage />} />
 
-            {/* Waiting room for pending users */}
-            <Route
-              path={ROUTES.WAITING_ROOM}
-              element={
-                <RouteGuard requireAuth allowPending>
-                  <WaitingRoomPage />
-                </RouteGuard>
-              }
-            />
+              {/* Waiting room for pending users */}
+              <Route
+                path={ROUTES.WAITING_ROOM}
+                element={
+                  <RouteGuard requireAuth allowPending>
+                    <WaitingRoomPage />
+                  </RouteGuard>
+                }
+              />
 
-            {/* App routes (requires active user) */}
-            <Route
-              element={
-                <RouteGuard requireAuth requireActive>
-                  <AppLayout />
-                </RouteGuard>
-              }
-            >
-              <Route path={ROUTES.CONTENT_LIBRARY} element={<ContentLibraryPage />} />
-              <Route path="/library/:id" element={<ContentDetailPage />} />
-              <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
-            </Route>
+              {/* App routes (requires active user) */}
+              <Route
+                element={
+                  <RouteGuard requireAuth requireActive>
+                    <AppLayout />
+                  </RouteGuard>
+                }
+              >
+                <Route path={ROUTES.CONTENT_LIBRARY} element={<ContentLibraryPage />} />
+                <Route path="/library/:id" element={<ContentDetailPage />} />
+                <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+              </Route>
 
-            {/* Admin routes */}
-            <Route
-              element={
-                <RouteGuard requireAuth requireActive requireAdmin>
-                  <AdminLayout />
-                </RouteGuard>
-              }
-            >
-              <Route path={ROUTES.ADMIN} element={<AdminDashboardPage />} />
-              <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
-              <Route path={ROUTES.ADMIN_TOPICS} element={<AdminTopicsPage />} />
-              <Route path={ROUTES.ADMIN_CONTENTS} element={<AdminContentsPage />} />
-              <Route path={ROUTES.ADMIN_BANNERS} element={<AdminBannersPage />} />
-              <Route path={ROUTES.ADMIN_PROGRAM_BANNERS} element={<AdminProgramBannersPage />} />
-            </Route>
+              {/* Admin routes */}
+              <Route
+                element={
+                  <RouteGuard requireAuth requireActive requireAdmin>
+                    <AdminLayout />
+                  </RouteGuard>
+                }
+              >
+                <Route path={ROUTES.ADMIN} element={<AdminDashboardPage />} />
+                <Route path={ROUTES.ADMIN_USERS} element={<AdminUsersPage />} />
+                <Route path={ROUTES.ADMIN_TOPICS} element={<AdminTopicsPage />} />
+                <Route path={ROUTES.ADMIN_CONTENTS} element={<AdminContentsPage />} />
+                <Route path={ROUTES.ADMIN_CONTENT_NEW} element={<AdminContentEditorPage />} />
+                <Route path="/admin/contents/:id/edit" element={<AdminContentEditorPage />} />
+                <Route path={ROUTES.ADMIN_BANNERS} element={<AdminBannersPage />} />
+                <Route path={ROUTES.ADMIN_PROGRAM_BANNERS} element={<AdminProgramBannersPage />} />
+              </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
