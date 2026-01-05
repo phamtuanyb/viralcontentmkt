@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,15 @@ import { toast } from "@/hooks/use-toast";
 import { Zap, Loader2, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuthStore } from "@/store/authStore";
+
 const emailSchema = z.string().email("Email không hợp lệ");
 const passwordSchema = z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự");
+
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isActive, isPending } = useAuthStore();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -25,11 +29,17 @@ const AuthPage = () => {
     fullName: ""
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const from = (location.state as {
-    from?: {
-      pathname: string;
-    };
-  })?.from?.pathname || ROUTES.CONTENT_LIBRARY;
+
+  // If user is already logged in, redirect based on status
+  useEffect(() => {
+    if (user) {
+      if (isPending()) {
+        navigate(ROUTES.WAITING_ROOM, { replace: true });
+      } else if (isActive()) {
+        navigate(ROUTES.LOGIN_REDIRECT, { replace: true });
+      }
+    }
+  }, [user, isPending, isActive, navigate]);
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     try {
@@ -59,7 +69,8 @@ const AuthPage = () => {
     try {
       if (isLogin) {
         const {
-          error
+          error,
+          data
         } = await authApi.signIn(formData.email, formData.password, rememberMe);
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
@@ -76,13 +87,8 @@ const AuthPage = () => {
             });
           }
         } else {
-          toast({
-            title: "Thành công",
-            description: "Đăng nhập thành công!"
-          });
-          navigate(from, {
-            replace: true
-          });
+          // The useEffect will handle redirection based on user status
+          // after auth state is updated
         }
       } else {
         const {
