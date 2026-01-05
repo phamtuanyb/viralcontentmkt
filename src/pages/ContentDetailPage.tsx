@@ -367,43 +367,50 @@ const ContentDetailPage = () => {
                 Hình ảnh đính kèm ({images.length})
               </h2>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-4">
                 {images.map((image, index) => (
                   <motion.div
                     key={image.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 + index * 0.05 }}
-                    className="glass rounded-xl overflow-hidden group cursor-pointer relative aspect-square"
-                    onClick={() => {
-                      setActiveImageIndex(index);
-                      setShowImageModal(true);
-                    }}
+                    className="glass rounded-xl overflow-hidden"
                   >
-                    <img
-                      src={image.image_url}
-                      alt={image.alt_text || `Image ${index + 1}`}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-background/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
+                    {/* Image Container */}
+                    <div 
+                      className="relative cursor-pointer"
+                      onClick={() => {
+                        setActiveImageIndex(index);
+                        setShowImageModal(true);
+                      }}
+                    >
+                      <img
+                        src={image.image_url}
+                        alt={image.alt_text || `Hình ${index + 1}`}
+                        className="w-full h-auto object-contain max-h-[500px] bg-muted/30"
+                      />
+                    </div>
+                    
+                    {/* Download Button Area */}
+                    <div className="p-4 border-t border-border flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Hình {index + 1} / {images.length}
+                      </span>
                       <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownloadImage(image.image_url, index);
-                        }}
+                        onClick={() => handleDownloadImage(image.image_url, index)}
                         disabled={!user}
+                        variant="default"
                         className="gap-2"
                       >
                         {user ? (
                           <>
                             <Download className="h-4 w-4" />
-                            Tải xuống
+                            Tải về máy tính
                           </>
                         ) : (
                           <>
                             <Lock className="h-4 w-4" />
-                            Đăng nhập
+                            Đăng nhập để tải
                           </>
                         )}
                       </Button>
