@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { ROUTES } from "@/constants";
+import { SuggestedArticles } from "@/components/SuggestedArticles";
 import { 
   ArrowLeft, 
   Copy, 
@@ -227,10 +228,12 @@ const ContentDetailPage = () => {
       )}
 
       <div className="container mx-auto px-4 py-8">
-        <motion.article
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto"
+        <div className="flex gap-8 max-w-7xl mx-auto">
+          {/* Main Content */}
+          <motion.article
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 max-w-4xl"
         >
           {/* Back button if no thumbnail */}
           {!content.thumbnail_url && (
@@ -419,6 +422,15 @@ const ContentDetailPage = () => {
             </Link>
           </motion.section>
         </motion.article>
+
+          {/* Suggested Articles Sidebar */}
+          <aside className="hidden lg:block w-80 flex-shrink-0">
+            <SuggestedArticles 
+              currentContentId={content.id} 
+              currentTopicId={content.topic_id} 
+            />
+          </aside>
+        </div>
       </div>
 
       {/* Image Modal */}
