@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { contentApi, type ContentWithTopic } from "@/api/content.api";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createContentUrl } from "@/lib/slug";
 import { Tag, Clock, Eye, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -89,7 +90,7 @@ export const SuggestedArticles = ({ currentContentId, currentTopicId }: Suggeste
             transition={{ delay: index * 0.1 }}
           >
             <Link
-              to={`/content/${article.id}`}
+              to={createContentUrl(article.id, article.title)}
               className="block group"
             >
               <div className="glass rounded-lg p-3 hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-primary/20">

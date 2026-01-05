@@ -91,6 +91,20 @@ export const contentApi = {
     return { data: data as ContentWithTopic | null, error };
   },
 
+  getByShortId: async (shortId: string) => {
+    // Query using pattern matching on the last 8 chars of UUID
+    const { data, error } = await supabase
+      .from("contents")
+      .select(`
+        *,
+        topics (id, name, slug)
+      `)
+      .like("id", `%${shortId}`)
+      .maybeSingle();
+
+    return { data: data as ContentWithTopic | null, error };
+  },
+
   getImages: async (contentId: string) => {
     const { data, error } = await supabase
       .from("content_images")
