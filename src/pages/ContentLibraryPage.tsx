@@ -1,27 +1,42 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { contentApi, type ContentWithTopic } from "@/api/content.api";
+import { contentApi, type ContentWithTopic, type SortOption } from "@/api/content.api";
 import { topicsApi, type Topic } from "@/api/topics.api";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/constants";
-import { Search, FileText, Calendar, Tag, Folder, FolderOpen, ChevronRight, Sparkles } from "lucide-react";
+import { Search, FileText, Calendar, Tag, Folder, FolderOpen, ChevronRight, Sparkles, ArrowUpDown, Clock, Eye, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+
+const sortOptions = [
+  { value: "newest" as SortOption, label: "Mới nhất", icon: Clock },
+  { value: "oldest" as SortOption, label: "Cũ nhất", icon: Clock },
+  { value: "views" as SortOption, label: "Lượt xem", icon: Eye },
+  { value: "popular" as SortOption, label: "Phổ biến", icon: TrendingUp },
+];
 
 const ContentLibraryPage = () => {
   const [contents, setContents] = useState<ContentWithTopic[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       const [contentsRes, topicsRes] = await Promise.all([
-        contentApi.getPublished(),
+        contentApi.getPublished(sortBy),
         topicsApi.getActive(),
       ]);
       
@@ -31,7 +46,7 @@ const ContentLibraryPage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [sortBy]);
 
   const filteredContents = contents.filter((content) => {
     const matchesTopic = !selectedTopic || content.topic_id === selectedTopic;
@@ -174,14 +189,44 @@ const ContentLibraryPage = () => {
               </p>
             </div>
 
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm kiếm nội dung..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-card/50 border-border/50"
-              />
+            <div className="flex items-center gap-3">
+              {/* Sort Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 bg-card/50 border-border/50">
+                    <ArrowUpDown className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {sortOptions.find(o => o.value === sortBy)?.label}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  {sortOptions.map((option) => (
+                    <DropdownMenuItem
+                      key={option.value}
+                      onClick={() => setSortBy(option.value)}
+                      className={cn(
+                        "gap-2 cursor-pointer",
+                        sortBy === option.value && "bg-primary/10 text-primary"
+                      )}
+                    >
+                      <option.icon className="h-4 w-4" />
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Search */}
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm kiếm..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-card/50 border-border/50"
+                />
+              </div>
             </div>
           </motion.div>
 

@@ -102,8 +102,19 @@ export const contentApi = {
   },
 
   incrementViewCount: async (id: string) => {
-    const { error } = await supabase.rpc("increment_view_count", { content_id: id });
-    return { error };
+    // Get current view count then increment
+    const { data: current } = await supabase
+      .from("contents")
+      .select("view_count")
+      .eq("id", id)
+      .maybeSingle();
+    
+    if (current) {
+      await supabase
+        .from("contents")
+        .update({ view_count: (current.view_count || 0) + 1 })
+        .eq("id", id);
+    }
   },
 
   create: async (content: { title: string; body: string; topic_id?: string; thumbnail_url?: string; is_published?: boolean; created_by?: string }) => {

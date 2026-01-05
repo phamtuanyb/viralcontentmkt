@@ -469,6 +469,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_view_count: { Args: { content_id: string }; Returns: undefined }
       is_user_active: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
