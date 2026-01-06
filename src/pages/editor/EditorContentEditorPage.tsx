@@ -204,11 +204,11 @@ const EditorContentEditorPage = () => {
 
     setIsSaving(true);
 
-    // Editor can only save as draft (is_published = false)
+    // Editor's content is published immediately
     const contentData = {
       ...formData,
       topic_id: formData.topic_id || undefined,
-      is_published: false, // Editors cannot publish directly
+      is_published: true, // Editor content is published immediately
       created_by: user?.id,
     };
 
@@ -341,12 +341,12 @@ const EditorContentEditorPage = () => {
             className="space-y-6"
           >
             {/* Info Banner */}
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex items-start gap-3">
-              <Clock className="h-5 w-5 text-blue-500 mt-0.5" />
+            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex items-start gap-3">
+              <FileText className="h-5 w-5 text-green-500 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-blue-500">Lưu ý</p>
+                <p className="text-sm font-medium text-green-500">Thông tin</p>
                 <p className="text-sm text-muted-foreground">
-                  Bài viết sẽ được lưu dưới dạng bản nháp. Admin sẽ xem xét và xuất bản bài viết của bạn.
+                  Bài viết của bạn sẽ được xuất bản ngay khi lưu.
                 </p>
               </div>
             </div>
