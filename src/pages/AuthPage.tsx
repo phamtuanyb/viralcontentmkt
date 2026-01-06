@@ -18,7 +18,7 @@ const passwordSchema = z.string().min(6, "Mật khẩu phải có ít nhất 6 k
 
 const AuthPage = () => {
   const navigate = useNavigate();
-  const { user, isActive, isPending, isLoading } = useAuthStore();
+  const { user, profile, isActive, isPending, isLoading } = useAuthStore();
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -34,14 +34,15 @@ const AuthPage = () => {
     // Wait for loading to complete before checking user state
     if (isLoading) return;
     
-    if (user) {
+    // Wait for profile to be loaded before checking status
+    if (user && profile) {
       if (isPending()) {
         navigate(ROUTES.WAITING_ROOM, { replace: true });
       } else if (isActive()) {
         navigate(ROUTES.LOGIN_REDIRECT, { replace: true });
       }
     }
-  }, [user, isPending, isActive, navigate, isLoading]);
+  }, [user, profile, isPending, isActive, navigate, isLoading]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
