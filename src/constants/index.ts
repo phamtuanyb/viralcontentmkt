@@ -8,6 +8,11 @@ export const ROUTES = {
   CONTENT_LIBRARY: "/library",
   CONTENT_DETAIL: "/content/:slug",
   PROFILE: "/profile",
+  // Editor routes
+  MY_CONTENTS: "/my-contents",
+  MY_CONTENT_NEW: "/my-contents/new",
+  MY_CONTENT_EDIT: "/my-contents/:id/edit",
+  // Admin routes
   ADMIN: "/admin",
   ADMIN_USERS: "/admin/users",
   ADMIN_TOPICS: "/admin/topics",

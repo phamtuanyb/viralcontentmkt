@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, RouteGuard } from "@/auth";
-import { PublicLayout, AppLayout, AdminLayout } from "@/layouts";
+import { PublicLayout, AppLayout, AdminLayout, EditorLayout } from "@/layouts";
 import { ROUTES } from "@/constants";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -24,6 +24,8 @@ import AdminContentEditorPage from "@/pages/admin/AdminContentEditorPage";
 import AdminBannersPage from "@/pages/admin/AdminBannersPage";
 import AdminProgramBannersPage from "@/pages/admin/AdminProgramBannersPage";
 import AdminAdBannersPage from "@/pages/admin/AdminAdBannersPage";
+import EditorContentsPage from "@/pages/editor/EditorContentsPage";
+import EditorContentEditorPage from "@/pages/editor/EditorContentEditorPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +78,19 @@ const App = () => (
                 <Route path={ROUTES.CONTENT_LIBRARY} element={<ContentLibraryPage />} />
                 <Route path="/content/:slug" element={<ContentDetailPage />} />
                 <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+              </Route>
+
+              {/* Editor routes (requires editor role) */}
+              <Route
+                element={
+                  <RouteGuard requireAuth requireActive requireEditor>
+                    <EditorLayout />
+                  </RouteGuard>
+                }
+              >
+                <Route path={ROUTES.MY_CONTENTS} element={<EditorContentsPage />} />
+                <Route path={ROUTES.MY_CONTENT_NEW} element={<EditorContentEditorPage />} />
+                <Route path="/my-contents/:id/edit" element={<EditorContentEditorPage />} />
               </Route>
 
               {/* Admin routes */}
