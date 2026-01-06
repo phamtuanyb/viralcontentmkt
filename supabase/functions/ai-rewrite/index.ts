@@ -149,15 +149,20 @@ serve(async (req) => {
 
     const finalPrompt = REWRITE_PROMPT.replace("{original_content}", content);
 
-    // Call Google Gemini API directly with model gemini-2.5-flash
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
-    
-    console.log("Calling Gemini API with model: gemini-2.5-flash-preview-05-20");
+    // Call Google Gemini API directly (user-provided API key)
+    // Note: some preview model IDs can be unavailable depending on API version / key access.
+    // Use the stable model id here.
+    const GEMINI_MODEL = "gemini-2.5-flash";
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+    console.log(`Calling Gemini API with model: ${GEMINI_MODEL}`);
 
     const geminiResp = await fetch(geminiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // Prefer header over query param to avoid leaking keys in URLs/logs.
+        "x-goog-api-key": geminiApiKey,
       },
       body: JSON.stringify({
         contents: [
@@ -178,7 +183,23 @@ serve(async (req) => {
 
       if (geminiResp.status === 401 || geminiResp.status === 403) {
         return new Response(
-          JSON.stringify({ error: "API Key không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại API Key trong trang Cá nhân." }),
+          JSON.stringify({
+            error:
+              "API Key không hợp lệ hoặc không có quyền. Vui lòng kiểm tra lại Gemini API Key trong trang Cá nhân.",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      if (geminiResp.status === 404) {
+        return new Response(
+          JSON.stringify({
+            error:
+              "Model Gemini hiện không khả dụng cho API Key này (404). Vui lòng kiểm tra quyền truy cập model hoặc thử lại sau.",
+          }),
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -199,30 +220,21 @@ serve(async (req) => {
       if (geminiResp.status === 400) {
         // Check if it's a content too long error
         if (errorText.includes("too long") || errorText.includes("token")) {
-          return new Response(
-            JSON.stringify({ error: "Nội dung quá dài. Vui lòng giảm độ dài nội dung và thử lại." }),
-            {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
-        }
-        return new Response(
-          JSON.stringify({ error: "Yêu cầu không hợp lệ. Vui lòng thử lại." }),
-          {
+          return new Response(JSON.stringify({ error: "Nội dung quá dài. Vui lòng giảm độ dài nội dung và thử lại." }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+          });
+        }
+        return new Response(JSON.stringify({ error: "Yêu cầu không hợp lệ. Vui lòng thử lại." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      return new Response(
-        JSON.stringify({ error: "Lỗi khi gọi Gemini API. Vui lòng thử lại sau." }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Lỗi khi gọi Gemini API. Vui lòng thử lại sau." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const geminiData = await geminiResp.json();
