@@ -19,17 +19,17 @@ export const authApi = {
   },
 
   signIn: async (email: string, password: string, rememberMe: boolean = false) => {
-    // Set session persistence based on rememberMe option
-    // If rememberMe is false, the session will be stored in sessionStorage (cleared on tab close)
-    // If rememberMe is true, the session will be stored in localStorage (persistent)
-    if (!rememberMe) {
-      // Store a flag to indicate session should not persist
-      sessionStorage.setItem('supabase_session_only', 'true');
-      localStorage.removeItem('supabase_session_only');
+    // Set session persistence BEFORE signing in
+    if (rememberMe) {
+      // User wants persistent session
+      localStorage.setItem('supabase_persist_session', 'true');
     } else {
-      sessionStorage.removeItem('supabase_session_only');
-      localStorage.setItem('supabase_session_only', 'false');
+      // User wants session-only (clear when browser closes)
+      localStorage.setItem('supabase_persist_session', 'false');
     }
+    
+    // Mark session as active for current tab
+    sessionStorage.setItem('supabase_active_session', 'true');
     
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -40,6 +40,10 @@ export const authApi = {
   },
 
   signOut: async () => {
+    // Clear session markers
+    localStorage.removeItem('supabase_persist_session');
+    sessionStorage.removeItem('supabase_active_session');
+    
     const { error } = await supabase.auth.signOut();
     return { error };
   },
