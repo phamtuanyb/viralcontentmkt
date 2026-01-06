@@ -8,6 +8,7 @@ interface RouteGuardProps {
   requireAuth?: boolean;
   requireActive?: boolean;
   requireAdmin?: boolean;
+  requireEditor?: boolean;
   allowPending?: boolean;
 }
 
@@ -16,9 +17,10 @@ export const RouteGuard = ({
   requireAuth = false,
   requireActive = false,
   requireAdmin = false,
+  requireEditor = false,
   allowPending = false,
 }: RouteGuardProps) => {
-  const { user, profile, isLoading, isAdmin, isActive, isPending } = useAuthStore();
+  const { user, profile, isLoading, isAdmin, isEditor, isActive, isPending } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
@@ -46,6 +48,11 @@ export const RouteGuard = ({
 
   // Require admin role
   if (requireAdmin && !isAdmin()) {
+    return <Navigate to={ROUTES.CONTENT_LIBRARY} replace />;
+  }
+
+  // Require editor role (editor or admin can access)
+  if (requireEditor && !isEditor() && !isAdmin()) {
     return <Navigate to={ROUTES.CONTENT_LIBRARY} replace />;
   }
 

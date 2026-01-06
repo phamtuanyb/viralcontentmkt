@@ -12,6 +12,7 @@ export interface Content {
   created_at: string;
   updated_at: string;
   view_count: number;
+  short_id: string | null;
 }
 
 export interface ContentWithTopic extends Content {
@@ -119,6 +120,19 @@ export const contentApi = {
       `)
       .eq("topic_id", topicId)
       .eq("is_published", true)
+      .order("created_at", { ascending: false });
+
+    return { data: data as ContentWithTopic[] | null, error };
+  },
+
+  getByCreator: async (userId: string) => {
+    const { data, error } = await supabase
+      .from("contents")
+      .select(`
+        *,
+        topics (id, name, slug)
+      `)
+      .eq("created_by", userId)
       .order("created_at", { ascending: false });
 
     return { data: data as ContentWithTopic[] | null, error };

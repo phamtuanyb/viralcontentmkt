@@ -3,26 +3,24 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants";
 import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/api/auth.api";
-import { Zap, Library, User, LogOut, Settings, FileEdit } from "lucide-react";
+import { Zap, Library, User, LogOut, FileEdit, Plus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-export const AppLayout = () => {
+export const EditorLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const {
     profile,
-    roles,
     isAdmin,
     isEditor,
     isSales,
     reset
   } = useAuthStore();
 
-  // Get the highest priority role for display
   const getRoleBadge = () => {
     if (isAdmin()) return { label: "Admin", variant: "admin" as const };
     if (isEditor()) return { label: "Content", variant: "editor" as const };
@@ -31,10 +29,9 @@ export const AppLayout = () => {
   };
 
   const roleBadge = getRoleBadge();
+
   const handleLogout = async () => {
-    const {
-      error
-    } = await authApi.signOut();
+    const { error } = await authApi.signOut();
     if (error) {
       toast({
         title: "Error",
@@ -46,14 +43,18 @@ export const AppLayout = () => {
       navigate(ROUTES.HOME);
     }
   };
+
   const getInitials = (name: string | null | undefined, email: string) => {
     if (name) {
       return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
     }
     return email.slice(0, 2).toUpperCase();
   };
+
   const isActiveRoute = (path: string) => location.pathname === path;
-  return <div className="min-h-screen bg-background">
+
+  return (
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -75,25 +76,25 @@ export const AppLayout = () => {
                 </Button>
               </Link>
               
-              {isEditor() && !isAdmin() && (
-                <Link to={ROUTES.MY_CONTENTS}>
-                  <Button variant={location.pathname.startsWith("/my-contents") ? "secondary" : "ghost"} size="sm" className="gap-2">
-                    <FileEdit className="h-4 w-4" />
-                    <span className="hidden sm:inline">Bài viết của tôi</span>
-                  </Button>
-                </Link>
-              )}
-              
-              {isAdmin() && <Link to={ROUTES.ADMIN}>
-                  <Button variant={location.pathname.startsWith("/admin") ? "secondary" : "ghost"} size="sm" className="gap-2">
-                    <Settings className="h-4 w-4" />
-                    <span className="hidden sm:inline">Quản trị</span>
-                  </Button>
-                </Link>}
+              <Link to={ROUTES.MY_CONTENTS}>
+                <Button variant={location.pathname.startsWith("/my-contents") ? "secondary" : "ghost"} size="sm" className="gap-2">
+                  <FileEdit className="h-4 w-4" />
+                  <span className="hidden sm:inline">Bài viết của tôi</span>
+                </Button>
+              </Link>
             </nav>
           </div>
 
           <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              onClick={() => navigate(ROUTES.MY_CONTENT_NEW)}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Tạo bài viết</span>
+            </Button>
+            
             <ThemeToggle />
             
             <DropdownMenu>
@@ -144,5 +145,6 @@ export const AppLayout = () => {
       <main className="pt-16 min-h-[calc(100vh-4rem)]">
         <Outlet />
       </main>
-    </div>;
+    </div>
+  );
 };
