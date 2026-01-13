@@ -24,9 +24,11 @@ import AdminContentEditorPage from "@/pages/admin/AdminContentEditorPage";
 import AdminBannersPage from "@/pages/admin/AdminBannersPage";
 import AdminProgramBannersPage from "@/pages/admin/AdminProgramBannersPage";
 import AdminAdBannersPage from "@/pages/admin/AdminAdBannersPage";
+import AdminPopupSettingsPage from "@/pages/admin/AdminPopupSettingsPage";
 import EditorContentsPage from "@/pages/editor/EditorContentsPage";
 import EditorContentEditorPage from "@/pages/editor/EditorContentEditorPage";
 import NotFound from "@/pages/NotFound";
+import MonthPopup from "@/components/MonthPopup";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <MonthPopup />
             <Routes>
               {/* Public routes */}
               <Route element={<PublicLayout />}>
@@ -110,6 +113,7 @@ const App = () => (
                 <Route path={ROUTES.ADMIN_BANNERS} element={<AdminBannersPage />} />
                 <Route path={ROUTES.ADMIN_PROGRAM_BANNERS} element={<AdminProgramBannersPage />} />
                 <Route path={ROUTES.ADMIN_AD_BANNERS} element={<AdminAdBannersPage />} />
+                <Route path={ROUTES.ADMIN_POPUP_SETTINGS} element={<AdminPopupSettingsPage />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

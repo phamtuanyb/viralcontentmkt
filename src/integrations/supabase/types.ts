@@ -410,6 +410,50 @@ export type Database = {
           },
         ]
       }
+      month_popup_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days_before_end: number | null
+          id: string
+          is_active: boolean | null
+          message: string
+          popup_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days_before_end?: number | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          popup_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days_before_end?: number | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          popup_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "month_popup_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       program_banners: {
         Row: {
           created_at: string
@@ -540,6 +584,45 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_popup_dismissals: {
+        Row: {
+          dismissed_at: string
+          dismissed_for_month: string
+          id: string
+          popup_id: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          dismissed_for_month: string
+          id?: string
+          popup_id: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          dismissed_for_month?: string
+          id?: string
+          popup_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_popup_dismissals_popup_id_fkey"
+            columns: ["popup_id"]
+            isOneToOne: false
+            referencedRelation: "month_popup_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_popup_dismissals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

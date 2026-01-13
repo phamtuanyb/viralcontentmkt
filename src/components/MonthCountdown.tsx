@@ -47,7 +47,7 @@ const MonthCountdown = () => {
           <Clock className="h-3.5 w-3.5 text-orange-500" />
         </div>
         <span className="text-xs font-medium text-orange-600 dark:text-orange-400">
-          Đếm ngược cuối tháng
+          BẠN BIẾT GÌ CHƯA
         </span>
       </div>
       

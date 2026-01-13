@@ -22,6 +22,7 @@ export const ROUTES = {
   ADMIN_BANNERS: "/admin/banners",
   ADMIN_PROGRAM_BANNERS: "/admin/program-banners",
   ADMIN_AD_BANNERS: "/admin/ad-banners",
+  ADMIN_POPUP_SETTINGS: "/admin/popup-settings",
 } as const;
 
 export const USER_STATUS = {
