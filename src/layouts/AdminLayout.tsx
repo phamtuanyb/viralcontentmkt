@@ -12,7 +12,8 @@ import {
   Megaphone,
   LogOut,
   ChevronRight,
-  LayoutDashboard 
+  LayoutDashboard,
+  Bell 
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ const adminMenuItems = [
   { path: ROUTES.ADMIN_BANNERS, label: "Banner trang chủ", icon: Image },
   { path: ROUTES.ADMIN_PROGRAM_BANNERS, label: "Banner chương trình", icon: Megaphone },
   { path: ROUTES.ADMIN_AD_BANNERS, label: "Banner quảng cáo", icon: Megaphone },
+  { path: ROUTES.ADMIN_POPUP_SETTINGS, label: "Popup thông báo", icon: Bell },
 ];
 
 export const AdminLayout = () => {
