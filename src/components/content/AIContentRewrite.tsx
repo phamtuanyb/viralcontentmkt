@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Sparkles, Copy, X, Loader2 } from "lucide-react";
+import { Sparkles, Copy, X, Loader2, FileText, RefreshCw, CheckCircle } from "lucide-react";
 
 interface AIContentRewriteProps {
   originalContent: string;
@@ -115,12 +115,29 @@ export const AIContentRewrite = ({ originalContent }: AIContentRewriteProps) => 
               Nội dung AI đã viết lại
             </DialogTitle>
           </DialogHeader>
+          
+          {/* Content section with icon */}
           <div className="flex-1 overflow-y-auto bg-muted/50 rounded-lg p-4 my-4">
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Nội dung đã được viết lại</span>
+              <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />
+            </div>
             <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
               {rewrittenContent}
             </div>
           </div>
+
           <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleAIContent} 
+              disabled={isLoading}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Viết lại
+            </Button>
             <Button variant="outline" onClick={() => setShowResultDialog(false)} className="gap-2">
               <X className="h-4 w-4" />
               Đóng
