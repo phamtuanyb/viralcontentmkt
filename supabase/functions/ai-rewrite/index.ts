@@ -33,6 +33,8 @@ Bạn chỉ được:
 
 ✔ giữ nguyên thông điệp gốc
 
+✔ GIỮ NGUYÊN TẤT CẢ CÁC EMOJI/ICON có trong nội dung gốc (ví dụ: ❌, 🔴, 🎁, ✅, 🔥, ⭐, 💰, 📌, 👉, 💥, 🎯, ✨, 📣, 🚀, 💡, 🏆, 📢 v.v.)
+
 Hãy giữ:
 
 - cấu trúc đoạn văn hợp lý
@@ -40,6 +42,8 @@ Hãy giữ:
 - bố cục dễ đọc
 
 - giọng văn marketing phù hợp
+
+- TẤT CẢ CÁC EMOJI/ICON từ nội dung gốc phải được giữ nguyên vị trí và số lượng
 
 Nội dung gốc cần viết lại:
 
@@ -57,7 +61,7 @@ Hãy trả về duy nhất:
 
 - không thêm tiêu đề phụ
 
-- không chèn emoji
+- giữ nguyên tất cả emoji/icon từ nội dung gốc
 
 - không meta comment
 
