@@ -21,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import MonthCountdown from "@/components/MonthCountdown";
 
 interface ContentImage {
   id: string;
@@ -277,8 +278,13 @@ const ContentLibraryPage = () => {
             ))}
           </nav>
 
+          {/* Month Countdown */}
+          <div className="mt-4">
+            <MonthCountdown />
+          </div>
+
           {/* Topics Footer */}
-          <div className="mt-6 p-3 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 border border-border/30">
+          <div className="mt-4 p-3 rounded-lg bg-gradient-to-br from-primary/5 to-secondary/5 border border-border/30">
             <p className="text-xs text-muted-foreground text-center">
               💡 Chọn chủ đề để lọc nội dung phù hợp
             </p>
