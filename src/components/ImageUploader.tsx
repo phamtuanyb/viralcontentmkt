@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,21 +9,35 @@ import {
   Image as ImageIcon, 
   Loader2, 
   Trash2, 
-  GripVertical,
   ZoomIn,
-  Download
+  Download,
+  FolderOpen,
+  Check,
+  Search,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UploadedImage {
   id: string;
   url: string;
   name: string;
+}
+
+interface StorageFile {
+  name: string;
+  url: string;
+  created_at: string;
 }
 
 interface ImageUploaderProps {
@@ -43,6 +57,13 @@ export const ImageUploader = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Library state
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryImages, setLibraryImages] = useState<StorageFile[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [selectedLibraryImages, setSelectedLibraryImages] = useState<Set<string>>(new Set());
 
   const generateFileName = (originalName: string) => {
     const timestamp = Date.now();
@@ -154,11 +175,8 @@ export const ImageUploader = ({
 
   const handleRemoveImage = async (imageToRemove: UploadedImage) => {
     try {
-      // Delete from storage
       const filePath = `content/${imageToRemove.id}`;
       await supabase.storage.from('content-images').remove([filePath]);
-      
-      // Update local state
       onImagesChange(images.filter(img => img.id !== imageToRemove.id));
       toast({ title: "Đã xóa", description: "Ảnh đã được xóa" });
     } catch (error: any) {
@@ -166,61 +184,258 @@ export const ImageUploader = ({
     }
   };
 
+  // Load library images from storage bucket
+  const loadLibraryImages = async () => {
+    setLibraryLoading(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('content-images')
+        .list('content', {
+          limit: 200,
+          sortBy: { column: 'created_at', order: 'desc' }
+        });
+
+      if (error) throw error;
+
+      const files: StorageFile[] = (data || [])
+        .filter(file => file.name && !file.name.startsWith('.'))
+        .map(file => {
+          const { data: { publicUrl } } = supabase.storage
+            .from('content-images')
+            .getPublicUrl(`content/${file.name}`);
+          return {
+            name: file.name,
+            url: publicUrl,
+            created_at: file.created_at || ''
+          };
+        });
+
+      setLibraryImages(files);
+    } catch (error: any) {
+      console.error('Error loading library:', error);
+      toast({ title: "Lỗi", description: "Không thể tải thư viện ảnh", variant: "destructive" });
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  const toggleLibraryImage = (file: StorageFile) => {
+    setSelectedLibraryImages(prev => {
+      const next = new Set(prev);
+      if (next.has(file.url)) {
+        next.delete(file.url);
+      } else {
+        next.add(file.url);
+      }
+      return next;
+    });
+  };
+
+  const handleAddFromLibrary = () => {
+    const remainingSlots = maxImages - images.length;
+    const selected = Array.from(selectedLibraryImages).slice(0, remainingSlots);
+    
+    const newImages: UploadedImage[] = selected
+      .filter(url => !images.some(img => img.url === url))
+      .map(url => {
+        const file = libraryImages.find(f => f.url === url);
+        return {
+          id: file?.name || Date.now().toString(),
+          url,
+          name: file?.name || 'Library image'
+        };
+      });
+
+    if (newImages.length > 0) {
+      onImagesChange([...images, ...newImages]);
+      toast({ title: "Thành công", description: `Đã thêm ${newImages.length} ảnh từ thư viện` });
+    }
+    
+    setSelectedLibraryImages(new Set());
+    setLibraryOpen(false);
+  };
+
+  const filteredLibrary = libraryImages.filter(file =>
+    file.name.toLowerCase().includes(librarySearch.toLowerCase())
+  );
+
+  // Already-used URLs for highlighting
+  const usedUrls = new Set(images.map(img => img.url));
+
   return (
     <div className="space-y-4">
-      {/* Upload Area */}
-      <div
-        className={cn(
-          "relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 cursor-pointer",
-          "hover:border-primary/50 hover:bg-primary/5",
-          dragOver ? "border-primary bg-primary/10" : "border-border",
-          isUploading && "pointer-events-none opacity-60"
-        )}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => handleFileSelect(e.target.files)}
-        />
+      {/* Upload Area & Library Button */}
+      <Tabs defaultValue="upload" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 h-9">
+          <TabsTrigger value="upload" className="text-xs gap-1.5">
+            <Upload className="h-3.5 w-3.5" />
+            Tải lên
+          </TabsTrigger>
+          <TabsTrigger 
+            value="library" 
+            className="text-xs gap-1.5"
+            onClick={() => {
+              if (libraryImages.length === 0) loadLibraryImages();
+            }}
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            Thư viện
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="flex flex-col items-center gap-3 text-center">
-          {isUploading ? (
-            <>
-              <Loader2 className="h-10 w-10 text-primary animate-spin" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Đang tải lên... {uploadProgress}%</p>
-                <div className="w-48 h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
+        <TabsContent value="upload" className="mt-3">
+          <div
+            className={cn(
+              "relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 cursor-pointer",
+              "hover:border-primary/50 hover:bg-primary/5",
+              dragOver ? "border-primary bg-primary/10" : "border-border",
+              isUploading && "pointer-events-none opacity-60"
+            )}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => handleFileSelect(e.target.files)}
+            />
+
+            <div className="flex flex-col items-center gap-3 text-center">
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Đang tải lên... {uploadProgress}%</p>
+                    <div className="w-48 h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <Upload className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">
+                      Kéo thả ảnh vào đây hoặc <span className="text-primary">chọn file</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG, WEBP (tối đa 5MB, tối đa {maxImages} ảnh)
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="library" className="mt-3">
+          <div className="space-y-3">
+            {/* Search & Refresh */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  value={librarySearch}
+                  onChange={(e) => setLibrarySearch(e.target.value)}
+                  placeholder="Tìm ảnh..."
+                  className="pl-8 h-8 text-xs"
+                />
               </div>
-            </>
-          ) : (
-            <>
-              <div className="p-3 rounded-full bg-primary/10">
-                <Upload className="h-6 w-6 text-primary" />
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={loadLibraryImages}
+                disabled={libraryLoading}
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", libraryLoading && "animate-spin")} />
+              </Button>
+            </div>
+
+            {/* Library Grid */}
+            {libraryLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium">
-                  Kéo thả ảnh vào đây hoặc <span className="text-primary">chọn file</span>
+            ) : filteredLibrary.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                {librarySearch ? "Không tìm thấy ảnh" : "Chưa có ảnh trong thư viện"}
+              </div>
+            ) : (
+              <>
+                <ScrollArea className="h-[240px]">
+                  <div className="grid grid-cols-3 gap-2 pr-3">
+                    {filteredLibrary.map((file) => {
+                      const isSelected = selectedLibraryImages.has(file.url);
+                      const isUsed = usedUrls.has(file.url);
+                      return (
+                        <button
+                          key={file.name}
+                          onClick={() => !isUsed && toggleLibraryImage(file)}
+                          className={cn(
+                            "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
+                            isUsed 
+                              ? "border-muted opacity-50 cursor-not-allowed"
+                              : isSelected
+                                ? "border-primary ring-2 ring-primary/20"
+                                : "border-border hover:border-primary/50"
+                          )}
+                        >
+                          <img
+                            src={file.url}
+                            alt={file.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <div className="bg-primary rounded-full p-1">
+                                <Check className="h-3 w-3 text-primary-foreground" />
+                              </div>
+                            </div>
+                          )}
+                          {isUsed && (
+                            <div className="absolute bottom-1 left-1 bg-background/80 text-[10px] px-1 rounded">
+                              Đã dùng
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+
+                {/* Add selected button */}
+                {selectedLibraryImages.size > 0 && (
+                  <Button
+                    onClick={handleAddFromLibrary}
+                    size="sm"
+                    className="w-full gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    Thêm {selectedLibraryImages.size} ảnh đã chọn
+                  </Button>
+                )}
+
+                <p className="text-[10px] text-muted-foreground text-center">
+                  {filteredLibrary.length} ảnh trong thư viện
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  PNG, JPG, WEBP (tối đa 5MB mỗi ảnh, tối đa {maxImages} ảnh)
-                </p>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+              </>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Image Preview Grid */}
       <AnimatePresence>
