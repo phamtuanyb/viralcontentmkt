@@ -405,7 +405,7 @@ export const ImageUploader = ({
                   </div>
                 ) : (
                   <ScrollArea className="flex-1 min-h-0">
-                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 pr-3 pb-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pr-3 pb-2">
                       {filteredLibrary.map((file) => {
                         const isSelected = selectedLibraryImages.has(file.url);
                         const isUsed = usedUrls.has(file.url);
